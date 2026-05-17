@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  Compass, MapPin, ChevronLeft, ArrowLeft, Utensils, Heart, Camera, Flame, Globe, Plus, Image
+  Compass, MapPin, ChevronLeft, ArrowLeft, Utensils, Heart, Camera, Flame, Globe, Plus
 } from 'lucide-react';
 
 // FIREBASE IMPORTS
@@ -14,16 +14,10 @@ const MOCK_SPOTS = [
     subtitle: 'Bodrum, Turkey',
     city: 'Bodrum',
     image: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?q=80&w=1000&auto=format&fit=crop',
-    // TOEGEVOEGDE LINKS VOOR JOUW KNOPPEN:
-    addressUrl: 'https://maps.google.com/?q=Casa+Blanca+Bodrum',
+    addressUrl: 'https://maps.google.com',
     websiteUrl: 'https://www.google.com',
     rating: { food: 4.5, service: 4.0, vibe: 4.5, totalVotes: 1 },
-    // HIER WORDEN DE GEÜPLOADE FOTO'S LIVE OPGESLAGEN PER CATEGORIE:
-    photos: {
-      view: [],
-      table: [],
-      food: []
-    }
+    photos: { view: [], table: [], food: [] }
   }
 ];
 
@@ -38,11 +32,10 @@ export default function LocaVibesApp() {
       if (!querySnapshot.empty) {
         const liveData = querySnapshot.docs.map(doc => {
           const data = doc.data();
-          // Zorg voor veilige fallbacks als velden nog niet in Firebase staan
           return {
             id: doc.id,
             ...data,
-            addressUrl: data.addressUrl || 'https://maps.google.com/?q=' + encodeURIComponent(data.name),
+            addressUrl: data.addressUrl || 'https://maps.google.com',
             websiteUrl: data.websiteUrl || 'https://www.google.com',
             photos: data.photos || { view: [], table: [], food: [] }
           };
@@ -76,7 +69,6 @@ export default function LocaVibesApp() {
     } catch (error) { alert(error.message); }
   };
 
-  // 🔥 MAGISCHE FUNCTIE OM EEN FOTO LIVE TE UPLOADEN EN OP TE SLAAN IN FIREBASE!
   const handlePhotoUpload = async (spotId, category, imageUrl) => {
     try {
       const spotRef = doc(db, "spots", spotId);
@@ -112,13 +104,14 @@ function FlameRating({ value, onChange }) {
     <div className="flex gap-1.5">
       {[1, 2, 3, 4, 5].map((index) => (
         <button key={index} type="button" onClick={() => onChange(index)} className="transition-transform active:scale-125 duration-100">
-          <Flame className={`w-6 h-6 ${index <= value ? 'fill-[#FF1493] text-[#FF1493] filter drop-shadow-[0_0_4px_rgba(255,20,147,0.5)]' : 'text-gray-200'}`} />
+          <Flame className={`w-6 h-6 ${index <= value ? 'fill-[#FF1493] text-[#FF1493]' : 'text-gray-200'}`} />
         </button>
       ))}
     </div>
   );
 }
 
+// --- HOME FEED ---
 function HomeFeed({ spots, onSelect }) {
   return (
     <div className="p-5 max-w-md mx-auto space-y-4">
@@ -141,18 +134,15 @@ function HomeFeed({ spots, onSelect }) {
   );
 }
 
-// --- VERNIEUWDE DETAILPAGINA MET ADRES, WEBSITE & VISUAL INTELLIGENCE ---
+// --- DETAIL SCHERM ---
 function SpotDetail({ spot, onBack, onRate, onNewPhoto }) {
-  const [activeTab, setActiveTab] = useState('view'); // view, table, of food
+  const [activeTab, setActiveTab] = useState('view');
   const [uploading, setUploading] = useState(false);
 
   if (!spot) return null;
   const overall = ((spot.rating.food + spot.rating.service + spot.rating.vibe) / 3).toFixed(1);
-
-  // Filter de foto's op basis van het gekozen menu-tabblad
   const currentPhotos = spot.photos?.[activeTab] || [];
 
-  // Anonieme upload-pijplijn via Imgur API (zodat gebruikers écht foto's kunnen uploaden vanaf Mac/telefoon!)
   const handleFileChange = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -164,17 +154,17 @@ function SpotDetail({ spot, onBack, onRate, onNewPhoto }) {
     try {
       const response = await fetch('https://api.imgur.com/3/image', {
         method: 'POST',
-        headers: { Authorization: 'Client-ID 77f0a7bdfd9b3be' }, // Gratis publieke client id
+        headers: { Authorization: 'Client-ID 77f0a7bdfd9b3be' },
         body: formData
       });
       const result = await response.json();
       if (result.success) {
         onNewPhoto(activeTab, result.data.link);
       } else {
-        alert("Upload mislukt, probeer een andere foto.");
+        alert("Upload mislukt.");
       }
     } catch (err) {
-      alert("Fout bij uploaden: " + err.message);
+      alert("Fout: " + err.message);
     } finally {
       setUploading(false);
     }
@@ -182,7 +172,6 @@ function SpotDetail({ spot, onBack, onRate, onNewPhoto }) {
 
   return (
     <div className="animate-in slide-in-from-right duration-200">
-      {/* HEADER AFBEELDING */}
       <div className="relative h-72 w-full">
         <img src={spot.image} className="w-full h-full object-cover" />
         <button onClick={onBack} className="absolute top-12 left-5 p-2 bg-black/30 backdrop-blur-md rounded-full text-white"><ChevronLeft /></button>
@@ -194,52 +183,46 @@ function SpotDetail({ spot, onBack, onRate, onNewPhoto }) {
 
       <div className="p-5 max-w-md mx-auto space-y-6">
         
-        {/* JOUW NIEUWE KNOPPEN: ADDRESS & WEBSITE */}
+        {/* OPGEVOED EN HERSTELD: ADDRESS & WEBSITE */}
         <div className="grid grid-cols-2 gap-4 bg-white p-3 rounded-2xl border border-gray-100 shadow-sm text-center">
-          <a href={spot.addressUrl} target="_blank" rel="noreferrer" className="flex flex-col items-center justify-center py-2 hover:bg-gray-50 rounded-xl transition-colors">
-            <MapPin className="w-5 "h-5" text-blue-500 mb-1" />
+          <a href={spot.addressUrl} target="_blank" rel="noreferrer" className="flex flex-col items-center justify-center py-2 hover:bg-gray-50 rounded-xl">
+            <MapPin className="w-5 h-5 text-blue-500 mb-1" />
             <span className="text-[10px] font-bold uppercase tracking-wider text-blue-500">Address</span>
           </a>
-          <a href={spot.websiteUrl} target="_blank" rel="noreferrer" className="flex flex-col items-center justify-center py-2 hover:bg-gray-50 rounded-xl transition-colors">
+          <a href={spot.websiteUrl} target="_blank" rel="noreferrer" className="flex flex-col items-center justify-center py-2 hover:bg-gray-50 rounded-xl">
             <Globe className="w-5 h-5 text-gray-700 mb-1" />
             <span className="text-[10px] font-bold uppercase tracking-wider text-gray-700">Website</span>
           </a>
         </div>
 
-        {/* HAVE YOU BEEN HERE BLOK */}
-        <button onClick={onRate} className="w-full bg-white text-[#FF1493] border border-gray-100 font-bold py-4 rounded-2xl shadow-sm text-center flex items-center justify-center gap-2 active:scale-95 transition-transform">
+        <button onClick={onRate} className="w-full bg-white text-[#FF1493] border border-gray-100 font-bold py-4 rounded-2xl shadow-sm text-center flex items-center justify-center gap-2">
           ✔️ Have you been here?
         </button>
 
-        {/* LOCA SCORE CARD */}
         <div className="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm space-y-3">
           <div className="flex justify-between items-center border-b pb-3 mb-2">
             <span className="font-bold text-gray-900">Loca Score ({spot.rating.totalVotes || 0} checks)</span>
-            <span className="bg-gradient-to-r from-pink-500 to-rose-500 text-white font-black px-3 py-1 rounded-xl flex items-center gap-1 shadow-sm">🔥 {overall}</span>
+            <span className="bg-gradient-to-r from-pink-500 to-rose-500 text-white font-black px-3 py-1 rounded-xl flex items-center gap-1">🔥 {overall}</span>
           </div>
           <div className="flex justify-between text-sm"><span className="text-gray-500 flex items-center gap-2"><Utensils className="w-4 h-4" /> Food</span><span className="font-bold">{spot.rating.food.toFixed(1)}</span></div>
           <div className="flex justify-between text-sm"><span className="text-gray-500 flex items-center gap-2"><Heart className="w-4 h-4" /> Service</span><span className="font-bold">{spot.rating.service.toFixed(1)}</span></div>
           <div className="flex justify-between text-sm"><span className="text-gray-500 flex items-center gap-2"><Camera className="w-4 h-4" /> Vibe</span><span className="font-bold">{spot.rating.vibe.toFixed(1)}</span></div>
         </div>
 
-        {/* VISUAL INTELLIGENCE SECTIE - Precies zoals je screenshot! */}
+        {/* VISUAL INTELLIGENCE */}
         <div className="space-y-4">
           <h2 className="text-lg font-black text-gray-900 tracking-tight">Visual Intelligence</h2>
-          
-          {/* FILTER TABS */}
           <div className="flex bg-gray-100/60 p-1 rounded-xl text-xs font-bold text-gray-500">
-            <button onClick={() => setActiveTab('view')} className={`flex-1 py-2.5 rounded-lg text-center transition-all ${activeTab === 'view' ? 'bg-white shadow-sm text-pink-600 font-extrabold' : ''}`}>The View</button>
-            <button onClick={() => setActiveTab('table')} className={`flex-1 py-2.5 rounded-lg text-center transition-all ${activeTab === 'table' ? 'bg-white shadow-sm text-pink-600 font-extrabold' : ''}`}>Best Table</button>
-            <button onClick={() => setActiveTab('food')} className={`flex-1 py-2.5 rounded-lg text-center transition-all ${activeTab === 'food' ? 'bg-white shadow-sm text-pink-600 font-extrabold' : ''}`}>Food</button>
+            <button onClick={() => setActiveTab('view')} className={`flex-1 py-2.5 rounded-lg text-center ${activeTab === 'view' ? 'bg-white shadow-sm text-pink-600 font-extrabold' : ''}`}>The View</button>
+            <button onClick={() => setActiveTab('table')} className={`flex-1 py-2.5 rounded-lg text-center ${activeTab === 'table' ? 'bg-white shadow-sm text-pink-600 font-extrabold' : ''}`}>Best Table</button>
+            <button onClick={() => setActiveTab('food')} className={`flex-1 py-2.5 rounded-lg text-center ${activeTab === 'food' ? 'bg-white shadow-sm text-pink-600 font-extrabold' : ''}`}>Food</button>
           </div>
 
-          {/* DYNAMISCHE FOTO CONTAINER */}
           <div className="bg-white rounded-2xl p-8 border border-gray-100 shadow-sm text-center">
             {currentPhotos.length === 0 ? (
               <div className="space-y-4">
                 <p className="text-sm font-medium text-gray-400">No photos here yet. Be the first!</p>
-                
-                <label className={`inline-flex items-center gap-2 text-xs font-black text-[#FF1493] cursor-pointer bg-pink-50 px-4 py-2.5 rounded-xl hover:bg-pink-100 transition-colors ${uploading ? 'opacity-50 pointer-events-none' : ''}`}>
+                <label className={`inline-flex items-center gap-2 text-xs font-black text-[#FF1493] cursor-pointer bg-pink-50 px-4 py-2.5 rounded-xl ${uploading ? 'opacity-50' : ''}`}>
                   <Plus className="w-4 h-4" /> {uploading ? 'Uploading...' : 'Upload Photo'}
                   <input type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
                 </label>
@@ -267,6 +250,7 @@ function SpotDetail({ spot, onBack, onRate, onNewPhoto }) {
   );
 }
 
+// --- REVIEW SCHERM ---
 function HaveBeenView({ spot, onBack, onSubmit }) {
   const [food, setFood] = useState(0);
   const [service, setService] = useState(0);
@@ -284,7 +268,7 @@ function HaveBeenView({ spot, onBack, onSubmit }) {
         <h2 className="font-bold text-gray-800 text-lg">Rate The Vibe</h2>
         <div className="flex justify-between items-center"><span className="text-sm font-semibold text-gray-600 flex items-center gap-2"><Utensils className="w-4 h-4" /> Food</span><FlameRating value={food} onChange={setFood} /></div>
         <div className="flex justify-between items-center"><span className="text-sm font-semibold text-gray-600 flex items-center gap-2"><Heart className="w-4 h-4" /> Service</span><FlameRating value={service} onChange={setService} /></div>
-        <div className="flex justify-between items-center"><span className="text-sm font-semibold text-gray-600 flex items-center gap-2"><Camera className="w-4 h-4" /> Vibe</span><FlameRating value={vibe} onChange={setVibe} /></div>
+        <div className="flex justify-between items-center"><span className="text-gray-600 font-semibold text-sm flex items-center gap-2"><Camera className="w-4 h-4" /> Vibe</span><FlameRating value={vibe} onChange={setVibe} /></div>
 
         <div className="border-t pt-4 flex justify-between items-center">
           <span className="text-sm font-bold text-gray-500">Your Average</span>
