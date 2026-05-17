@@ -4,7 +4,12 @@
   "description": "",
   "keywords": [],
   "main": "src/index.js",
-  "dependencies": {
+ "dependencies": {
+    "firebase": "^10.11.0",
+    "lucide-react": "^0.263.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
     "bootstrap": "5.2.3",
     "loader-utils": "3.2.1",
     "react": "18.2.0",
