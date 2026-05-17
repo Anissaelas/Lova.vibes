@@ -1,9 +1,7 @@
-// Import the functions you need from the SDKs you need
 import { initializeApp } from "firebase/app";
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
+// DEZE IMPORT WAS JE VERGETEN:
+import { getFirestore } from "firebase/firestore";
 
-// Your web app's Firebase configuration
 const firebaseConfig = {
   apiKey: "AIzaSyAJRuv4-dudOel0FkwjYJJ0O5TuUQH2Rpg",
   authDomain: "locavibes-24dce.firebaseapp.com",
@@ -15,3 +13,7 @@ const firebaseConfig = {
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
+
+// DEZE TWEE REGELS MOESTEN ER NOG BIJ:
+// Hiermee starten we de database en sturen we de 'db' sleutel door naar App.jsx
+export const db = getFirestore(app);
