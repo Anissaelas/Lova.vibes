@@ -7,7 +7,6 @@ import {
   Filter,
   MapPin,
   ExternalLink,
-  Instagram,
   Globe,
   Camera,
   Utensils,
@@ -999,15 +998,6 @@ function SpotDetail({ spot, onBack, onHaveBeenClick, isSaved, onSaveClick }) {
 
       <div className="px-5 -mt-4 relative z-10">
         <div className="bg-white/80 backdrop-blur-xl border border-white rounded-2xl p-4 shadow-xl flex justify-around mb-6">
-          <a
-            href="#"
-            className="flex flex-col items-center gap-1 text-pink-600 hover:text-pink-500"
-          >
-            <Instagram className="w-5 h-5" />
-            <span className="text-[10px] font-bold uppercase tracking-wider">
-              Instagram
-            </span>
-          </a>
           <a
             href="#"
             className="flex flex-col items-center gap-1 text-blue-600 hover:text-blue-500"
