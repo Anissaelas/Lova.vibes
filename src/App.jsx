@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   Compass, LayoutGrid, Heart, User, MapPin, ChevronLeft, ArrowLeft, 
   Utensils, Camera, Flame, Globe, Plus, Search, Info, Check, Instagram, CalendarDays, 
-  ShieldAlert, Share2, Edit3, Settings, LogOut, Grid, Calendar, Image as ImageIcon, Lock, Mail, Upload
+  ShieldAlert, Share2, Edit3, Settings, LogOut, Grid, Calendar, Image as ImageIcon, Lock, Mail, Upload, SlidersHorizontal, Bookmark, Map
 } from 'lucide-react';
 
 import { db, auth } from './firebase';
@@ -32,6 +32,7 @@ export default function LocaVibesApp() {
   const [isLoadingAuth, setIsLoadingAuth] = useState(true);
 
   const [currentView, setCurrentView] = useState('home'); 
+  const [viewMode, setViewMode] = useState('list'); // list of map
   const [activeSpot, setActiveSpot] = useState(null);
   const [activeCityObj, setActiveCityObj] = useState(null);
   const [activeListId, setActiveListId] = useState(null);
@@ -39,17 +40,12 @@ export default function LocaVibesApp() {
   const [spots, setSpots] = useState([]); 
   const [searchQuery, setSearchQuery] = useState('');
   const [isLive, setIsLive] = useState(false);
+  
+  // Quick Save Modal State
+  const [quickSaveSpotId, setQuickSaveSpotId] = useState(null);
 
-  // --- MY LISTS (INITIALISED WITH DEFAULT "MY FAVORITES" LIST) ---
   const [savedLists, setSavedLists] = useState([
-    { 
-      id: 'default_favorites', 
-      name: 'My favorites', 
-      coverImage: 'https://images.unsplash.com/photo-1513542789411-b6a5d4f31634?q=80&w=500', 
-      spots: [], 
-      notes: 'My all-time favourite curated spots.', 
-      dates: 'Always' 
-    }
+    { id: 'default_favorites', name: 'My favorites', coverImage: 'https://images.unsplash.com/photo-1513542789411-b6a5d4f31634?q=80&w=500', spots: [], notes: 'My all-time favourite curated spots.', dates: 'Always' }
   ]);
 
   useEffect(() => {
@@ -114,7 +110,6 @@ export default function LocaVibesApp() {
     setCurrentView('saved');
   };
 
-  // FUNCTIE OM EEN PLEK TOE TE VOEGEN AAN EEN GEKOZEN LIJST
   const handleAddSpotToList = (spotId, listId) => {
     setSavedLists(prev => prev.map(list => {
       if (list.id === listId) {
@@ -124,6 +119,7 @@ export default function LocaVibesApp() {
       }
       return list;
     }));
+    setQuickSaveSpotId(null);
   };
 
   const navigateToSpot = (spotId) => {
@@ -132,42 +128,82 @@ export default function LocaVibesApp() {
   };
 
   if (isLoadingAuth) {
-    return <div className="min-h-screen bg-[#FFFDF6] flex items-center justify-center font-black text-2xl text-gray-900 tracking-tighter animate-pulse">LOQA.</div>;
+    return <div className="min-h-screen bg-[#FFFEE0] flex items-center justify-center font-black text-2xl text-gray-900 tracking-tighter animate-pulse">LOQA.</div>;
   }
 
   if (!user) return <AuthView />;
 
   return (
-    <div className="min-h-screen bg-[#FFFDF6] font-sans text-gray-800 pb-28 relative">
-      {currentView === 'home' && <HomeFeed spots={spots} onSelectSpot={navigateToSpot} />}
-      {currentView === 'all_places' && <AllPlacesView spots={spots} onSelectCity={(city) => { setActiveCityObj(city); setCurrentView('city_detail'); }} onSelectSpot={navigateToSpot} onAddClick={() => setCurrentView('add_spot')} searchQuery={searchQuery} setSearchQuery={setSearchQuery} />}
-      {currentView === 'city_detail' && <CityDetailView spots={spots} city={activeCityObj} onSelectSpot={navigateToSpot} onBack={() => setCurrentView('all_places')} />}
-      {currentView === 'add_spot' && <AddSpotView onBack={() => setCurrentView('all_places')} onSave={handleAddSpot} />}
+    <div className="min-h-screen bg-[#FFFEE0] font-sans text-gray-800 pb-28 relative">
       
-      {currentView === 'detail' && (
-        <SpotDetail 
-          spot={spots.find(s => s.id === activeSpot?.id)} 
-          onBack={() => setCurrentView(previousView)} 
-          onRate={() => setCurrentView('have_been')} 
-          lists={savedLists}
-          onAddToList={handleAddSpotToList}
-        />
+      {/* FLOATING MAP TOGGLE BUTTON (Enkel zichtbaar op Home & All Places) */}
+      {(currentView === 'home' || currentView === 'all_places' || currentView === 'city_detail') && (
+        <button 
+          onClick={() => setViewMode(viewMode === 'list' ? 'map' : 'list')}
+          className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 bg-[#222222] border border-[#333333] text-white font-bold px-6 py-3 rounded-full shadow-2xl flex items-center gap-2 text-xs uppercase tracking-wider active:scale-95 transition-transform"
+        >
+          <Map className="w-4 h-4 text-[#FF1493]" />
+          {viewMode === 'list' ? 'View on Map' : 'View List'}
+        </button>
       )}
-      
-      {currentView === 'have_been' && <HaveBeenView spot={activeSpot} onBack={() => setCurrentView('detail')} onSubmit={(r, tags) => handleReviewSubmit(activeSpot.id, r, tags)} />}
-      
-      {currentView === 'saved' && <SavedView lists={savedLists} onOpenList={(id) => { setActiveListId(id); setCurrentView('list_detail'); }} onCreateClick={() => setCurrentView('create_list')} />}
-      {currentView === 'create_list' && <CreateListView onBack={() => setCurrentView('saved')} onSave={handleCreateList} />}
-      {currentView === 'list_detail' && <ListDetailView list={savedLists.find(l => l.id === activeListId)} allSpots={spots} onBack={() => setCurrentView('saved')} onSelectSpot={navigateToSpot} onUpdateNotes={(id, n) => setSavedLists(prev => prev.map(l => l.id === id ? { ...l, notes: n } : l))} onUpdateDates={(id, d) => setSavedLists(prev => prev.map(l => l.id === id ? { ...l, dates: d } : l))} />}
-      
-      {currentView === 'profile' && <ProfileView isLive={isLive} listsCount={savedLists.length} userEmail={user.email} onBulkImport={fetchSpots} />}
 
-      <nav className="fixed bottom-0 w-full bg-white/90 backdrop-blur-md border-t border-gray-100 pb-safe pt-3 px-6 pb-4 z-40">
-        <div className="flex justify-between items-center max-w-md mx-auto text-gray-400">
-          <button onClick={() => setCurrentView('all_places')} className={`flex flex-col items-center gap-1 ${currentView === 'all_places' || currentView === 'city_detail' ? 'text-gray-900 font-bold' : ''}`}><LayoutGrid className="w-6 h-6" /><span className="text-[10px]">All Places</span></button>
-          <button onClick={() => setCurrentView('home')} className={`flex flex-col items-center gap-1 ${currentView === 'home' ? 'text-gray-900 font-bold' : ''}`}><Compass className="w-6 h-6" /><span className="text-[10px]">Home</span></button>
-          <button onClick={() => setCurrentView('saved')} className={`flex flex-col items-center gap-1 ${currentView === 'saved' || currentView === 'list_detail' ? 'text-gray-900 font-bold' : ''}`}><Heart className="w-6 h-6" /><span className="text-[10px]">My Lists</span></button>
-          <button onClick={() => setCurrentView('profile')} className={`flex flex-col items-center gap-1 ${currentView === 'profile' ? 'text-gray-900 font-bold' : ''}`}><User className="w-6 h-6" /><span className="text-[10px]">Profile</span></button>
+      {/* QUICK SAVE PIN MODAL */}
+      {quickSaveSpotId && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-end justify-center animate-in fade-in duration-200">
+          <div className="bg-[#222222] border-t border-[#333333] w-full max-w-md rounded-t-3xl p-6 space-y-4 text-white">
+            <div className="flex justify-between items-center">
+              <h3 className="font-black text-lg tracking-tight">Pin to Moodboard</h3>
+              <button onClick={() => setQuickSaveSpotId(null)} className="text-gray-400 font-bold text-sm">Cancel</button>
+            </div>
+            <div className="space-y-2 max-h-60 overflow-y-auto">
+              {savedLists.map(l => (
+                <button key={l.id} onClick={() => handleAddSpotToList(quickSaveSpotId, l.id)} className="w-full text-left bg-[#333333] hover:bg-[#444444] p-4 rounded-xl font-bold text-sm transition-colors flex justify-between items-center">
+                  <span>{l.name}</span>
+                  <Plus className="w-4 h-4 text-[#FF1493]" />
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* RENDER VIEWS BASED ON LIST OR MAP MODE */}
+      {viewMode === 'map' ? (
+        <MapView spots={spots} onSelectSpot={(id) => { setViewMode('list'); navigateToSpot(id); }} onBack={() => setViewMode('list')} />
+      ) : (
+        <>
+          {currentView === 'home' && <HomeFeed spots={spots} onSelectSpot={navigateToSpot} onQuickSave={setQuickSaveSpotId} />}
+          {currentView === 'all_places' && <AllPlacesView spots={spots} onSelectCity={(city) => { setActiveCityObj(city); setCurrentView('city_detail'); }} onSelectSpot={navigateToSpot} onAddClick={() => setCurrentView('add_spot')} searchQuery={searchQuery} setSearchQuery={setSearchQuery} onQuickSave={setQuickSaveSpotId} />}
+          {currentView === 'city_detail' && <CityDetailView spots={spots} city={activeCityObj} onSelectSpot={navigateToSpot} onBack={() => setCurrentView('all_places')} onQuickSave={setQuickSaveSpotId} />}
+          {currentView === 'add_spot' && <AddSpotView onBack={() => setCurrentView('all_places')} onSave={handleAddSpot} />}
+          
+          {currentView === 'detail' && (
+            <SpotDetail 
+              spot={spots.find(s => s.id === activeSpot?.id)} 
+              onBack={() => setCurrentView(previousView)} 
+              onRate={() => setCurrentView('have_been')} 
+              lists={savedLists}
+              onAddToList={handleAddSpotToList}
+            />
+          )}
+          
+          {currentView === 'have_been' && <HaveBeenView spot={activeSpot} onBack={() => setCurrentView('detail')} onSubmit={(r, tags) => handleReviewSubmit(activeSpot.id, r, tags)} />}
+          
+          {currentView === 'saved' && <SavedView lists={savedLists} onOpenList={(id) => { setActiveListId(id); setCurrentView('list_detail'); }} onCreateClick={() => setCurrentView('create_list')} />}
+          {currentView === 'create_list' && <CreateListView onBack={() => setCurrentView('saved')} onSave={handleCreateList} />}
+          {currentView === 'list_detail' && <ListDetailView list={savedLists.find(l => l.id === activeListId)} allSpots={spots} onBack={() => setCurrentView('saved')} onSelectSpot={navigateToSpot} onUpdateNotes={(id, n) => setSavedLists(prev => prev.map(l => l.id === id ? { ...l, notes: n } : l))} onUpdateDates={(id, d) => setSavedLists(prev => prev.map(l => l.id === id ? { ...l, dates: d } : l))} />}
+          
+          {currentView === 'profile' && <ProfileView isLive={isLive} listsCount={savedLists.length} userEmail={user.email} onBulkImport={fetchSpots} />}
+        </>
+      )}
+
+      {/* CHROME / DARK NAV BAR */}
+      <nav className="fixed bottom-0 w-full bg-[#222222] border-t border-[#333333] pb-safe pt-3 px-6 pb-4 z-40">
+        <div className="flex justify-between items-center max-w-md mx-auto text-gray-500">
+          <button onClick={() => { setViewMode('list'); setCurrentView('all_places'); }} className={`flex flex-col items-center gap-1 ${currentView === 'all_places' && viewMode === 'list' ? 'text-[#FF1493] font-bold' : ''}`}><LayoutGrid className="w-6 h-6" /><span className="text-[10px]">All Places</span></button>
+          <button onClick={() => { setViewMode('list'); setCurrentView('home'); }} className={`flex flex-col items-center gap-1 ${currentView === 'home' && viewMode === 'list' ? 'text-[#FF1493] font-bold' : ''}`}><Compass className="w-6 h-6" /><span className="text-[10px]">Home</span></button>
+          <button onClick={() => { setViewMode('list'); setCurrentView('saved'); }} className={`flex flex-col items-center gap-1 ${currentView === 'saved' && viewMode === 'list' ? 'text-[#FF1493] font-bold' : ''}`}><Heart className="w-6 h-6" /><span className="text-[10px]">My Lists</span></button>
+          <button onClick={() => { setViewMode('list'); setCurrentView('profile'); }} className={`flex flex-col items-center gap-1 ${currentView === 'profile' && viewMode === 'list' ? 'text-[#FF1493] font-bold' : ''}`}><User className="w-6 h-6" /><span className="text-[10px]">Profile</span></button>
         </div>
       </nav>
     </div>
@@ -190,27 +226,27 @@ function AuthView() {
   };
 
   return (
-    <div className="min-h-screen bg-[#FFFDF6] flex flex-col justify-center px-6 pb-20 animate-in fade-in duration-500">
+    <div className="min-h-screen bg-[#FFFEE0] flex flex-col justify-center px-6 pb-20 animate-in fade-in duration-500">
       <div className="max-w-sm w-full mx-auto space-y-8">
         <div className="text-center">
           <h1 className="text-5xl font-black text-gray-900 tracking-tighter mb-2">LOQA.</h1>
           <p className="text-gray-500 font-medium text-sm">Curated aesthetics around the globe.</p>
         </div>
 
-        <form onSubmit={handleAuth} className="bg-white p-6 rounded-3xl border border-gray-100 shadow-xl space-y-5">
-          <h2 className="text-xl font-bold text-gray-900">{isLogin ? 'Welcome Back' : 'Create an Account'}</h2>
-          {error && <div className="bg-red-50 text-red-500 p-3 rounded-xl text-xs font-bold">{error}</div>}
+        <form onSubmit={handleAuth} className="bg-[#222222] p-6 rounded-3xl border border-[#333333] shadow-xl space-y-5 text-white">
+          <h2 className="text-xl font-bold text-white">{isLogin ? 'Welcome Back' : 'Create an Account'}</h2>
+          {error && <div className="bg-red-900/50 text-red-400 p-3 rounded-xl text-xs font-bold border border-red-500/30">{error}</div>}
           <div className="space-y-3">
             <div className="relative">
               <Mail className="w-5 h-5 absolute left-4 top-3.5 text-gray-400" />
-              <input type="email" placeholder="Email address" value={email} onChange={e=>setEmail(e.target.value)} className="w-full bg-gray-50 border border-gray-100 rounded-2xl py-3.5 pl-12 pr-4 shadow-sm focus:outline-none focus:ring-2 focus:ring-gray-900 font-medium text-sm" required />
+              <input type="email" placeholder="Email address" value={email} onChange={e=>setEmail(e.target.value)} className="w-full bg-[#333333] border border-[#444444] rounded-2xl py-3.5 pl-12 pr-4 shadow-sm text-white focus:outline-none focus:ring-2 focus:ring-[#FF1493] font-medium text-sm" required />
             </div>
             <div className="relative">
               <Lock className="w-5 h-5 absolute left-4 top-3.5 text-gray-400" />
-              <input type="password" placeholder="Password" value={password} onChange={e=>setPassword(e.target.value)} className="w-full bg-gray-50 border border-gray-100 rounded-2xl py-3.5 pl-12 pr-4 shadow-sm focus:outline-none focus:ring-2 focus:ring-gray-900 font-medium text-sm" required minLength="6" />
+              <input type="password" placeholder="Password" value={password} onChange={e=>setPassword(e.target.value)} className="w-full bg-[#333333] border border-[#444444] rounded-2xl py-3.5 pl-12 pr-4 shadow-sm text-white focus:outline-none focus:ring-2 focus:ring-[#FF1493] font-medium text-sm" required minLength="6" />
             </div>
           </div>
-          <button type="submit" className="w-full bg-gray-900 text-white font-bold py-4 rounded-2xl shadow-lg active:scale-95 transition-transform">
+          <button type="submit" className="w-full bg-[#FF1493] text-white font-bold py-4 rounded-2xl shadow-lg active:scale-95 transition-transform">
             {isLogin ? 'Sign In' : 'Sign Up'}
           </button>
         </form>
@@ -227,16 +263,19 @@ function FlameRating({ value, onChange }) {
     <div className="flex gap-1.5">
       {[1, 2, 3, 4, 5].map((index) => (
         <button key={index} type="button" onClick={() => onChange(index)} className="transition-transform active:scale-125 duration-100">
-          <Flame className={`w-6 h-6 ${index <= value ? 'fill-gray-900 text-gray-900' : 'text-gray-200'}`} />
+          <Flame className={`w-6 h-6 ${index <= value ? 'fill-[#FF1493] text-[#FF1493]' : 'text-gray-300'}`} />
         </button>
       ))}
     </div>
   );
 }
 
-function HomeFeed({ spots, onSelectSpot }) {
+// --- 1. HOME FEED (WITH DIRECT PIN & ADVANCED FILTERS) ---
+function HomeFeed({ spots, onSelectSpot, onQuickSave }) {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [activeFilter, setActiveFilter] = useState('All'); // All, Near Me, Instagrammable, Worth the hype
 
   const top10 = [...spots].sort((a, b) => {
     const scoreA = ((a.rating?.food || 0) + (a.rating?.service || 0) + (a.rating?.vibe || 0)) / 3;
@@ -244,17 +283,31 @@ function HomeFeed({ spots, onSelectSpot }) {
     return scoreB - scoreA;
   }).slice(0, 10);
 
-  const isSearching = searchQuery.trim().length > 0;
-  const filteredSpots = spots.filter(spot => `${spot.name} ${spot.city} ${spot.type} ${spot.tags?.join(' ')}`.toLowerCase().includes(searchQuery.toLowerCase()));
+  // Apply Advanced Vibe Filtering
+  const filteredSpots = spots.filter(spot => {
+    const matchesSearch = `${spot.name} ${spot.city} ${spot.type} ${spot.tags?.join(' ')}`.toLowerCase().includes(searchQuery.toLowerCase());
+    if (activeFilter === 'Near Me') return matchesSearch && spot.city === 'Bodrum'; // Simuleer huidige locatie
+    if (activeFilter !== 'All') return matchesSearch && spot.tags?.includes(activeFilter);
+    return matchesSearch;
+  });
 
   return (
     <div className="pb-8 animate-in fade-in duration-200">
       <div className="flex justify-between items-center px-5 pt-10 mb-4">
         <h1 className="text-3xl font-black text-gray-900 tracking-tighter">LOQA.</h1>
-        <button onClick={() => setIsSearchOpen(!isSearchOpen)} className="p-2 bg-white rounded-full border shadow-sm active:scale-95">
-          <Search className="w-5 h-5 text-gray-600" />
-        </button>
+        <div className="flex gap-2">
+          <button onClick={() => setIsFilterOpen(!isFilterOpen)} className={`p-2.5 bg-white rounded-full border shadow-sm ${activeFilter !== 'All' ? 'border-[#FF1493] text-[#FF1493]' : 'text-gray-600'}`}><SlidersHorizontal className="w-5 h-5" /></button>
+          <button onClick={() => setIsSearchOpen(!isSearchOpen)} className="p-2.5 bg-white rounded-full border shadow-sm"><Search className="w-5 h-5 text-gray-600" /></button>
+        </div>
       </div>
+
+      {isFilterOpen && (
+        <div className="px-5 mb-4 flex gap-2 overflow-x-auto no-scrollbar animate-in slide-in-from-top-2">
+          {['All', 'Near Me', 'Instagrammable', 'Worth the hype'].map(f => (
+            <button key={f} onClick={() => setActiveFilter(f)} className={`px-4 py-1.5 rounded-full text-xs font-bold whitespace-nowrap border transition-all ${activeFilter === f ? 'bg-[#FF1493] text-white border-[#FF1493]' : 'bg-white text-gray-600 border-gray-100'}`}>{f}</button>
+          ))}
+        </div>
+      )}
 
       {isSearchOpen && (
         <div className="px-5 mb-6 animate-in slide-in-from-top-2">
@@ -265,16 +318,17 @@ function HomeFeed({ spots, onSelectSpot }) {
         </div>
       )}
 
-      {isSearching ? (
+      {(searchQuery.trim().length > 0 || activeFilter !== 'All') ? (
         <div className="px-5 space-y-3">
-          <h2 className="text-sm font-bold text-gray-500 mb-2">Search Results</h2>
+          <h2 className="text-sm font-bold text-gray-500 mb-2">Filtered Results</h2>
           {filteredSpots.map(spot => (
-            <div key={spot.id} onClick={() => onSelectSpot(spot.id)} className="bg-white rounded-2xl p-2.5 flex items-center gap-4 shadow-sm border border-gray-100 cursor-pointer">
-              <img src={spot.image} className="w-20 h-20 rounded-xl object-cover shrink-0" />
-              <div className="flex-1 overflow-hidden">
+            <div key={spot.id} className="relative bg-white rounded-2xl p-2.5 flex items-center gap-4 shadow-sm border border-gray-100 cursor-pointer">
+              <img src={spot.image} onClick={() => onSelectSpot(spot.id)} className="w-20 h-20 rounded-xl object-cover shrink-0" />
+              <div className="flex-1 overflow-hidden" onClick={() => onSelectSpot(spot.id)}>
                 <h3 className="font-bold text-gray-900 leading-tight truncate">{spot.name}</h3>
                 <p className="text-xs text-gray-500 mt-1 font-bold">{spot.type} • {spot.city}</p>
               </div>
+              <button onClick={() => onQuickSave(spot.id)} className="absolute top-3 right-3 p-2 bg-white/80 backdrop-blur-md rounded-full shadow-sm text-gray-600 hover:text-[#FF1493]"><Bookmark className="w-4 h-4" /></button>
             </div>
           ))}
         </div>
@@ -282,9 +336,8 @@ function HomeFeed({ spots, onSelectSpot }) {
         <>
           <div className="pl-5 mb-10">
             <h2 className="text-xl font-black text-gray-900 mb-4 tracking-tight">Global Top 10</h2>
-            
             {spots.length === 0 ? (
-              <div className="bg-gray-50 border border-gray-200 rounded-3xl p-8 text-center mr-5">
+              <div className="bg-white border border-gray-100 rounded-3xl p-8 text-center mr-5 shadow-sm">
                 <p className="font-bold text-gray-500">It's quiet here...</p>
                 <p className="text-xs text-gray-400 mt-2">Go to 'Profile' to import your Excel data or add manually under 'All Places'!</p>
               </div>
@@ -293,14 +346,18 @@ function HomeFeed({ spots, onSelectSpot }) {
                 {top10.map((spot, index) => {
                   const score = ((spot.rating?.food + spot.rating?.service + spot.rating?.vibe)/3).toFixed(1);
                   return (
-                    <div key={spot.id} onClick={() => onSelectSpot(spot.id)} className="snap-start relative min-w-[260px] h-[320px] bg-white rounded-3xl overflow-hidden shadow-lg shadow-gray-200/50 cursor-pointer group shrink-0 active:scale-95 transition-transform">
-                      <img src={spot.image} className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
-                      <div className="absolute inset-0 bg-gradient-to-t from-gray-900/90 via-gray-900/20 to-transparent"></div>
-                      <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-md text-gray-900 w-10 h-10 rounded-full flex items-center justify-center font-black shadow-lg text-lg">#{index + 1}</div>
-                      <div className="absolute bottom-5 left-5 right-5 text-white">
+                    <div key={spot.id} className="snap-start relative min-w-[260px] h-[320px] bg-white rounded-3xl overflow-hidden shadow-lg shadow-gray-200/40 cursor-pointer group shrink-0 transition-transform">
+                      <img src={spot.image} onClick={() => onSelectSpot(spot.id)} className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-gray-900/90 via-gray-900/20 to-transparent" onClick={() => onSelectSpot(spot.id)}></div>
+                      
+                      {/* DIRECT PIN BUTTON IN THE CORNER */}
+                      <button onClick={() => onQuickSave(spot.id)} className="absolute top-4 right-4 z-20 p-2.5 bg-white/90 backdrop-blur-md text-gray-800 rounded-full shadow-lg active:scale-125 transition-transform hover:text-[#FF1493]"><Bookmark className="w-4 h-4 fill-current text-inherit" /></button>
+                      
+                      <div className="absolute top-4 left-4 bg-[#222222] border border-[#333333] text-white w-10 h-10 rounded-full flex items-center justify-center font-black shadow-lg text-lg">#{index + 1}</div>
+                      <div className="absolute bottom-5 left-5 right-5 text-white" onClick={() => onSelectSpot(spot.id)}>
                         <h3 className="font-black text-2xl leading-tight mb-1">{spot.name}</h3>
                         <p className="text-xs font-bold opacity-80 flex items-center gap-1 mb-3"><MapPin className="w-3.5 h-3.5" /> {spot.city}</p>
-                        <div className="inline-flex bg-white/20 border border-white/30 backdrop-blur px-3 py-1.5 rounded-xl items-center gap-1.5 shadow-md">
+                        <div className="inline-flex bg-[#FF1493] px-3 py-1.5 rounded-xl items-center gap-1.5 shadow-md">
                           <Flame className="w-4 h-4 fill-white text-white" />
                           <span className="text-sm font-black">{score}</span>
                         </div>
@@ -317,7 +374,8 @@ function HomeFeed({ spots, onSelectSpot }) {
   );
 }
 
-function AllPlacesView({ spots, onSelectCity, onSelectSpot, onAddClick, searchQuery, setSearchQuery }) {
+// --- 2. ALL PLACES ---
+function AllPlacesView({ spots, onSelectCity, onSelectSpot, onAddClick, searchQuery, setSearchQuery, onQuickSave }) {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const isSearching = searchQuery.trim().length > 0;
   const filteredSpots = spots.filter(spot => `${spot.name} ${spot.city} ${spot.type}`.toLowerCase().includes(searchQuery.toLowerCase()));
@@ -328,14 +386,14 @@ function AllPlacesView({ spots, onSelectCity, onSelectSpot, onAddClick, searchQu
         <h1 className="text-2xl font-black text-gray-900 tracking-tight">All Places</h1>
         <div className="flex gap-2">
           <button onClick={() => setIsSearchOpen(!isSearchOpen)} className="p-2.5 bg-white rounded-full border shadow-sm active:scale-95"><Search className="w-5 h-5 text-gray-600" /></button>
-          <button onClick={onAddClick} className="bg-gray-900 text-white p-2.5 rounded-full font-bold shadow-sm active:scale-95"><Plus className="w-5 h-5" /></button>
+          <button onClick={onAddClick} className="bg-[#222222] border border-[#333333] text-white p-2.5 rounded-full font-bold shadow-sm active:scale-95"><Plus className="w-5 h-5" /></button>
         </div>
       </div>
 
       {isSearchOpen && (
         <div className="relative mb-6 animate-in slide-in-from-top-2">
           <Search className="w-5 h-5 absolute left-4 top-3.5 text-gray-400" />
-          <input type="text" placeholder="Search destinations..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full bg-white border border-gray-100 rounded-2xl py-3.5 pl-12 pr-4 shadow-sm focus:outline-none focus:ring-2 focus:ring-gray-900 font-medium text-sm" autoFocus />
+          <input type="text" placeholder="Search destinations..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full bg-white border border-gray-100 rounded-2xl py-3.5 pl-12 pr-4 shadow-sm focus:outline-none focus:ring-2 focus:ring-[#FF1493] font-medium text-sm" autoFocus />
         </div>
       )}
 
@@ -343,12 +401,13 @@ function AllPlacesView({ spots, onSelectCity, onSelectSpot, onAddClick, searchQu
         <div className="space-y-3">
           <h2 className="text-sm font-bold text-gray-500 mb-2">Search Results</h2>
           {filteredSpots.map(spot => (
-            <div key={spot.id} onClick={() => onSelectSpot(spot.id)} className="bg-white rounded-2xl p-2.5 flex items-center gap-4 shadow-sm border border-gray-100 cursor-pointer">
-              <img src={spot.image} className="w-20 h-20 rounded-xl object-cover shrink-0" />
-              <div className="flex-1 overflow-hidden">
+            <div key={spot.id} className="relative bg-white rounded-2xl p-2.5 flex items-center gap-4 shadow-sm border border-gray-100 cursor-pointer">
+              <img src={spot.image} onClick={() => onSelectSpot(spot.id)} className="w-20 h-20 rounded-xl object-cover shrink-0" />
+              <div className="flex-1 overflow-hidden" onClick={() => onSelectSpot(spot.id)}>
                 <h3 className="font-bold text-gray-900 leading-tight truncate">{spot.name}</h3>
                 <p className="text-xs text-gray-500 mt-1 font-bold">{spot.type} • {spot.city}</p>
               </div>
+              <button onClick={() => onQuickSave(spot.id)} className="absolute top-3 right-3 p-2 bg-white/80 rounded-full text-gray-600 hover:text-[#FF1493]"><Bookmark className="w-4 h-4" /></button>
             </div>
           ))}
         </div>
@@ -370,7 +429,7 @@ function AllPlacesView({ spots, onSelectCity, onSelectSpot, onAddClick, searchQu
   );
 }
 
-function CityDetailView({ spots, city, onSelectSpot, onBack }) {
+function CityDetailView({ spots, city, onSelectSpot, onBack, onQuickSave }) {
   const [filter, setFilter] = useState('All');
   const citySpots = spots.filter(s => s.city === city?.name);
   const filteredSpots = filter === 'All' ? citySpots : citySpots.filter(s => s.type === filter);
@@ -383,20 +442,22 @@ function CityDetailView({ spots, city, onSelectSpot, onBack }) {
         <h1 className="text-2xl font-black text-gray-900">{city?.name}</h1>
       </header>
       <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2">
-        {types.map(t => <button key={t} onClick={() => setFilter(t)} className={`px-4 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all ${filter === t ? 'bg-gray-900 text-white shadow-md' : 'bg-white text-gray-500 border border-gray-100'}`}>{t}</button>)}
+        {types.map(t => <button key={t} onClick={() => setFilter(t)} className={`px-4 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all ${filter === t ? 'bg-[#FF1493] text-white border-[#FF1493]' : 'bg-white text-gray-500 border border-gray-100'}`}>{t}</button>)}
       </div>
       <div className="space-y-3">
         {filteredSpots.map(spot => (
-          <div key={spot.id} onClick={() => onSelectSpot(spot.id)} className="bg-white rounded-2xl p-2.5 flex items-center gap-4 shadow-sm border border-gray-100 cursor-pointer">
-            <img src={spot.image} className="w-20 h-20 rounded-xl object-cover shrink-0" />
-            <div className="flex-1">
+          <div key={spot.id} className="relative bg-white rounded-2xl p-2.5 flex items-center gap-4 shadow-sm border border-gray-100 cursor-pointer">
+            <img src={spot.image} onClick={() => onSelectSpot(spot.id)} className="w-20 h-20 rounded-xl object-cover shrink-0" />
+            <div className="flex-1" onClick={() => onSelectSpot(spot.id)}>
               <h3 className="font-bold text-gray-900 leading-tight">{spot.name}</h3>
               <p className="text-xs text-gray-400 mt-1 font-medium">{spot.type}</p>
             </div>
-            <span className="text-xs font-black text-gray-900 bg-gray-100 px-2 py-1 rounded-lg flex items-center gap-1"><Flame className="w-3 h-3 fill-gray-900" /> {((spot.rating?.food + spot.rating?.service + spot.rating?.vibe)/3).toFixed(1)}</span>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-black text-gray-900 bg-gray-100 px-2 py-1 rounded-lg flex items-center gap-1"><Flame className="w-3 h-3 fill-gray-900" /> {((spot.rating?.food + spot.rating?.service + spot.rating?.vibe)/3).toFixed(1)}</span>
+              <button onClick={() => onQuickSave(spot.id)} className="p-2 bg-gray-50 rounded-full text-gray-500 hover:text-[#FF1493]"><Bookmark className="w-4 h-4" /></button>
+            </div>
           </div>
         ))}
-        {filteredSpots.length === 0 && <p className="text-center text-gray-400 text-sm mt-8">No {filter.toLowerCase()}s found in {city?.name} yet.</p>}
       </div>
     </div>
   );
@@ -433,8 +494,8 @@ function AddSpotView({ onBack, onSave }) {
       </header>
 
       <div className="space-y-5 bg-white p-6 rounded-3xl border shadow-sm">
-        <div><label className="text-xs font-bold text-gray-500">Spot Name</label><input type="text" value={name} onChange={e=>setName(e.target.value)} className="w-full bg-gray-50 p-3 rounded-xl mt-1 focus:outline-gray-900" required /></div>
-        <div><label className="text-xs font-bold text-gray-500">City</label><input type="text" value={city} onChange={e=>setCity(e.target.value)} className="w-full bg-gray-50 p-3 rounded-xl mt-1 focus:outline-gray-900" required /></div>
+        <div><label className="text-xs font-bold text-gray-500">Spot Name</label><input type="text" value={name} onChange={e=>setName(e.target.value)} className="w-full bg-gray-50 p-3 rounded-xl mt-1 focus:outline-gray-900" /></div>
+        <div><label className="text-xs font-bold text-gray-500">City</label><input type="text" value={city} onChange={e=>setCity(e.target.value)} className="w-full bg-gray-50 p-3 rounded-xl mt-1 focus:outline-gray-900" /></div>
         <div>
           <label className="text-xs font-bold text-gray-500">Type</label>
           <select value={type} onChange={e=>{setType(e.target.value); setSelectedTags([]);}} className="w-full bg-gray-50 p-3 rounded-xl mt-1 focus:outline-gray-900">
@@ -450,7 +511,7 @@ function AddSpotView({ onBack, onSave }) {
           <label className="text-xs font-bold text-gray-500 block mb-2">Vibe Tags</label>
           <div className="flex flex-wrap gap-2">
             {availableTags.map(tag => (
-              <button key={tag} onClick={() => toggleTag(tag)} className={`px-3 py-1.5 rounded-xl text-[10px] font-bold border transition-colors ${selectedTags.includes(tag) ? 'bg-gray-900 text-white border-gray-900' : 'bg-white text-gray-600 border-gray-200'}`}>{tag}</button>
+              <button key={tag} onClick={() => toggleTag(tag)} className={`px-3 py-1.5 rounded-xl text-[10px] font-bold border transition-colors ${selectedTags.includes(tag) ? 'bg-[#FF1493] text-white border-[#FF1493]' : 'bg-white text-gray-600 border-gray-200'}`}>{tag}</button>
             ))}
           </div>
         </div>
@@ -461,20 +522,12 @@ function AddSpotView({ onBack, onSave }) {
   );
 }
 
-// --- 5. SPOT DETAIL SCREEN (WITH ADD TO LIST DROPDOWN) ---
 function SpotDetail({ spot, onBack, onRate, lists, onAddToList }) {
   const [selectedListId, setSelectedListId] = useState('');
   const [savedStatus, setSavedStatus] = useState('');
 
   if (!spot) return null;
   const overall = ((spot.rating?.food + spot.rating?.service + spot.rating?.vibe) / 3).toFixed(1);
-
-  const handleSaveToList = () => {
-    if (!selectedListId) return;
-    onAddToList(spot.id, selectedListId);
-    setSavedStatus('Saved!');
-    setTimeout(() => setSavedStatus(''), 2000);
-  };
 
   return (
     <div className="animate-in slide-in-from-right duration-200 pb-20">
@@ -486,7 +539,7 @@ function SpotDetail({ spot, onBack, onRate, lists, onAddToList }) {
             <h1 className="text-3xl font-black drop-shadow-md leading-tight">{spot.name}</h1>
             <p className="text-sm font-medium drop-shadow-md flex items-center gap-1 opacity-90"><MapPin className="w-3.5 h-3.5"/> {spot.type} • {spot.city}</p>
           </div>
-          <div className="bg-white/20 backdrop-blur-md px-3 py-1.5 rounded-xl border border-white/30 flex items-center gap-1.5 shadow-lg">
+          <div className="bg-[#FF1493] px-3 py-1.5 rounded-xl flex items-center gap-1.5 shadow-lg">
             <Flame className="w-4 h-4 fill-white text-white" /> <span className="font-black text-lg">{overall}</span>
           </div>
         </div>
@@ -500,31 +553,18 @@ function SpotDetail({ spot, onBack, onRate, lists, onAddToList }) {
         </div>
 
         <div className="grid grid-cols-2 gap-3">
-          <a href={spot.bookingUrl} target="_blank" rel="noreferrer" className="bg-gray-900 text-white font-bold py-3.5 rounded-2xl shadow-md flex items-center justify-center gap-2 text-sm"><CalendarDays className="w-4 h-4"/> Book</a>
-          <button onClick={onRate} className="bg-white border border-gray-200 text-gray-900 font-bold py-3.5 rounded-2xl shadow-sm flex items-center justify-center gap-2 text-sm"><Check className="w-4 h-4"/> Have you been?</button>
+          <a href={spot.bookingUrl} target="_blank" rel="noreferrer" className="bg-[#FF1493] text-white font-bold py-3.5 rounded-2xl shadow-md flex items-center justify-center gap-2 text-sm">Book</a>
+          <button onClick={onRate} className="bg-[#222222] border border-[#333333] text-white font-bold py-3.5 rounded-2xl shadow-sm flex items-center justify-center gap-2 text-sm">Have you been?</button>
         </div>
 
-        {/* NIEUWE STRATEGISCHE OPTIE: ADD TO LIST SELECTOR */}
         <div className="bg-white p-4 rounded-3xl border border-gray-100 shadow-sm space-y-2.5">
           <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Add to your collections</label>
           <div className="flex gap-2">
-            <select 
-              value={selectedListId} 
-              onChange={(e) => setSelectedListId(e.target.value)} 
-              className="flex-1 bg-gray-50 border border-gray-100 rounded-xl px-3 py-2.5 text-xs font-bold focus:outline-gray-900 text-gray-700"
-            >
+            <select value={selectedListId} onChange={(e) => setSelectedListId(e.target.value)} className="flex-1 bg-gray-50 border border-gray-100 rounded-xl px-3 py-2.5 text-xs font-bold focus:outline-gray-900 text-gray-700">
               <option value="">Choose a list...</option>
-              {lists.map(l => (
-                <option key={l.id} value={l.id}>{l.name}</option>
-              ))}
+              {lists.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
             </select>
-            <button 
-              onClick={handleSaveToList}
-              disabled={!selectedListId}
-              className={`px-5 py-2.5 rounded-xl font-bold text-xs shadow-sm transition-all ${selectedListId ? 'bg-gray-900 text-white active:scale-95' : 'bg-gray-100 text-gray-400 cursor-not-allowed'}`}
-            >
-              {savedStatus || 'Save'}
-            </button>
+            <button onClick={() => { onAddToList(spot.id, selectedListId); setSavedStatus('Saved!'); setTimeout(()=>setSavedStatus(''), 2000); }} disabled={!selectedListId} className={`px-5 py-2.5 rounded-xl font-bold text-xs shadow-sm transition-all ${selectedListId ? 'bg-gray-900 text-white active:scale-95' : 'bg-gray-100 text-gray-400'}`}>{savedStatus || 'Save'}</button>
           </div>
         </div>
 
@@ -532,14 +572,6 @@ function SpotDetail({ spot, onBack, onRate, lists, onAddToList }) {
           <div className="flex-1 bg-white p-3.5 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-3"><div className="bg-gray-50 p-2 rounded-full text-gray-700"><Utensils className="w-4 h-4"/></div><div><p className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Cuisine</p><p className="text-xs font-bold text-gray-900 truncate">{spot.cuisine || 'International'}</p></div></div>
           <div className="flex-1 bg-white p-3.5 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-3"><div className="bg-gray-50 p-2 rounded-full text-gray-700"><Info className="w-4 h-4"/></div><div><p className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Dress Code</p><p className="text-xs font-bold text-gray-900 truncate">{spot.dresscode || 'Smart Casual'}</p></div></div>
         </div>
-
-        {spot.tags && spot.tags.length > 0 && (
-          <div className="flex flex-wrap gap-2">
-            {spot.tags.map((tag, i) => (
-              <span key={i} className="bg-gray-50 text-gray-600 px-3 py-1.5 rounded-full text-[10px] font-bold border border-gray-200">{tag}</span>
-            ))}
-          </div>
-        )}
       </div>
     </div>
   );
@@ -572,12 +604,70 @@ function HaveBeenView({ spot, onBack, onSubmit }) {
         <h2 className="text-sm font-black text-gray-900 mb-3 uppercase tracking-wider pl-1">What fits the vibe?</h2>
         <div className="flex flex-wrap gap-2">
           {availableTags.map(tag => (
-            <button key={tag} onClick={() => toggleTag(tag)} className={`px-3.5 py-2 rounded-xl text-[11px] font-bold border transition-colors ${selectedTags.includes(tag) ? 'bg-gray-900 text-white border-gray-900 shadow-md' : 'bg-white text-gray-600 border-gray-200 shadow-sm'}`}>{tag}</button>
+            <button key={tag} onClick={() => toggleTag(tag)} className={`px-3.5 py-2 rounded-xl text-[11px] font-bold border transition-colors ${selectedTags.includes(tag) ? 'bg-[#FF1493] text-white border-[#FF1493] shadow-md' : 'bg-white text-gray-600 border-gray-200 shadow-sm'}`}>{tag}</button>
           ))}
         </div>
       </div>
 
-      <button onClick={() => onSubmit({ food, service, vibe }, selectedTags)} disabled={!food || !service || !vibe} className={`w-full py-4 rounded-2xl font-black text-white text-center shadow-lg transition-all flex items-center justify-center gap-2 mt-4 ${food && service && vibe ? 'bg-gray-900 active:scale-95' : 'bg-gray-300'}`}>Submit Vibe Check</button>
+      <button onClick={() => onSubmit({ food, service, vibe }, selectedTags)} disabled={!food || !service || !vibe} className={`w-full py-4 rounded-2xl font-black text-white text-center shadow-lg transition-all flex items-center justify-center gap-2 mt-4 ${food && service && vibe ? 'bg-[#FF1493] active:scale-95' : 'bg-gray-300'}`}>Submit Vibe Check</button>
+    </div>
+  );
+}
+
+// --- 3. FLOATING CHROMATIC MAP VIEW ---
+function MapView({ spots, onSelectSpot }) {
+  return (
+    <div className="w-full h-screen bg-[#222222] relative animate-in fade-in duration-300">
+      
+      {/* MAP GRID BACKGROUND SIMULATION */}
+      <div className="absolute inset-0 opacity-15 flex flex-wrap pointer-events-none">
+        {Array.from({ length: 120 }).map((_, i) => (
+          <div key={i} className="w-16 h-16 border border-[#444444] text-[8px] p-1 text-gray-600 font-mono">
+            LN-{i * 4}
+          </div>
+        ))}
+      </div>
+
+      {/* CHROME INTERACTIVE HEAD */}
+      <div className="absolute top-8 left-4 right-4 z-20 bg-[#222222]/90 border border-[#333333] backdrop-blur p-4 rounded-2xl shadow-xl flex items-center gap-3">
+        <MapPin className="text-[#FF1493] w-5 h-5 shrink-0" />
+        <div className="flex-1 text-left">
+          <h2 className="text-white text-sm font-black tracking-tight uppercase">Radar Active</h2>
+          <p className="text-[10px] text-gray-400 font-medium">Displaying {spots.length} viral hot zones</p>
+        </div>
+      </div>
+
+      {/* PLACING PINS LIVE FROM FIREBASE DATA */}
+      {spots.map((spot, index) => {
+        // Genereer veilige pseudo-willekeurige coordinaten voor het schermvlak
+        const pseudoTop = 30 + ((index * 73) % 45);
+        const pseudoLeft = 15 + ((index * 127) % 70);
+
+        return (
+          <button 
+            key={spot.id}
+            onClick={() => onSelectSpot(spot.id)}
+            style={{ top: `${pseudoTop}%`, left: `${pseudoLeft}%` }}
+            className="absolute z-10 -translate-x-1/2 -translate-y-1/2 group animate-in zoom-in duration-300"
+          >
+            <div className="relative flex flex-col items-center">
+              <div className="bg-[#FF1493] text-white text-[10px] font-black px-2.5 py-1 rounded-xl shadow-xl border border-[#FFFEE0]/20 transform group-hover:scale-110 transition-transform">
+                {spot.name}
+              </div>
+              <div className="w-2.5 h-2.5 bg-[#FF1493] border-2 border-white rounded-full shadow-md mt-1 animate-ping absolute -bottom-1"></div>
+              <div className="w-2.5 h-2.5 bg-[#FF1493] border-2 border-white rounded-full shadow-md mt-1"></div>
+            </div>
+          </button>
+        );
+      })}
+
+      {spots.length === 0 && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center p-8 text-center text-gray-400">
+          <MapPin className="w-8 h-8 text-gray-600 mb-2 animate-bounce" />
+          <p className="font-bold text-sm">No map coordinates active.</p>
+          <p className="text-[11px] opacity-60 mt-1">Add destinations with locations to see them on radar.</p>
+        </div>
+      )}
     </div>
   );
 }
@@ -683,7 +773,6 @@ function ListDetailView({ list, allSpots, onBack, onSelectSpot, onUpdateNotes, o
                 <ChevronLeft className="w-4 h-4 text-gray-300 rotate-180 mr-2" />
               </div>
             ))}
-            {listSpots.length === 0 && <p className="text-xs text-gray-400 text-center py-4">No hotspots saved in this list yet.</p>}
           </div>
         </div>
       </div>
@@ -722,27 +811,16 @@ function ProfileView({ isLive, listsCount, userEmail, onBulkImport }) {
           if (!rowData.name || !rowData.city) continue;
 
           await addDoc(collection(db, "spots"), {
-            name: rowData.name,
-            city: rowData.city,
-            type: rowData.type || 'Restaurant',
-            cuisine: rowData.cuisine || '',
-            dresscode: rowData.dresscode || '',
+            name: rowData.name, city: rowData.city, type: rowData.type || 'Restaurant', cuisine: rowData.cuisine || '', dresscode: rowData.dresscode || '',
             image: rowData.image || 'https://images.unsplash.com/photo-1514933651103-005eec06c04b?q=80&w=1000',
             addressUrl: rowData.addressUrl || `https://maps.google.com/?q=$$$${encodeURIComponent(rowData.name)}+${encodeURIComponent(rowData.city)}`,
-            websiteUrl: rowData.websiteUrl || '',
-            instagramUrl: rowData.instagramUrl || '',
-            bookingUrl: rowData.bookingUrl || '',
-            tags: [],
-            rating: { food: 5, service: 5, vibe: 5, totalVotes: 1 }
+            websiteUrl: rowData.websiteUrl || '', instagramUrl: rowData.instagramUrl || '', bookingUrl: rowData.bookingUrl || '', tags: [], rating: { food: 5, service: 5, vibe: 5, totalVotes: 1 }
           });
           successCount++;
         }
-
         setImportStatus(`Successfully imported ${successCount} spots!`);
         onBulkImport(); 
-      } catch (err) {
-        setImportStatus(`Error: ${err.message}`);
-      }
+      } catch (err) { setImportStatus(`Error: ${err.message}`); }
     };
     reader.readAsText(file);
   };
@@ -762,7 +840,6 @@ function ProfileView({ isLive, listsCount, userEmail, onBulkImport }) {
       
       <div className="space-y-3">
         <h2 className="text-sm font-black text-gray-900 mb-2 uppercase tracking-wider pl-1">Admin Tools</h2>
-        
         <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm space-y-3">
           <div className="flex items-center gap-4">
             <div className="bg-gray-100 p-2 rounded-full text-gray-600"><Upload className="w-5 h-5"/></div>
@@ -775,7 +852,7 @@ function ProfileView({ isLive, listsCount, userEmail, onBulkImport }) {
             Select .CSV File
             <input type="file" accept=".csv" onChange={handleCSVUpload} className="hidden" />
           </label>
-          {importStatus && <p className="text-[11px] font-bold text-center text-pink-600 animate-pulse">{importStatus}</p>}
+          {importStatus && <p className="text-[11px] font-bold text-center text-[#FF1493] animate-pulse">{importStatus}</p>}
         </div>
 
         <h2 className="text-sm font-black text-gray-900 mb-2 uppercase tracking-wider pl-1 mt-6">Settings & App</h2>
