@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   Compass, LayoutGrid, Heart, User, MapPin, ChevronLeft, ArrowLeft, 
   Utensils, Camera, Flame, Globe, Plus, Search, Info, Check, Instagram, CalendarDays, 
-  ShieldAlert, Share2, Edit3, Settings, LogOut, Grid, Calendar, Image as ImageIcon, Lock, Mail
+  ShieldAlert, Share2, Edit3, Settings, LogOut, Grid, Calendar, Image as ImageIcon, Lock, Mail, Upload
 } from 'lucide-react';
 
 import { db, auth } from './firebase';
@@ -36,10 +36,21 @@ export default function LocaVibesApp() {
   const [activeCityObj, setActiveCityObj] = useState(null);
   const [activeListId, setActiveListId] = useState(null);
   const [previousView, setPreviousView] = useState('home');
-  const [spots, setSpots] = useState([]); // De app begint leeg!
+  const [spots, setSpots] = useState([]); 
   const [searchQuery, setSearchQuery] = useState('');
   const [isLive, setIsLive] = useState(false);
-  const [savedLists, setSavedLists] = useState([]);
+
+  // --- MY LISTS (INITIALISED WITH DEFAULT "MY FAVORITES" LIST) ---
+  const [savedLists, setSavedLists] = useState([
+    { 
+      id: 'default_favorites', 
+      name: 'My favorites', 
+      coverImage: 'https://images.unsplash.com/photo-1513542789411-b6a5d4f31634?q=80&w=500', 
+      spots: [], 
+      notes: 'My all-time favourite curated spots.', 
+      dates: 'Always' 
+    }
+  ]);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -103,6 +114,18 @@ export default function LocaVibesApp() {
     setCurrentView('saved');
   };
 
+  // FUNCTIE OM EEN PLEK TOE TE VOEGEN AAN EEN GEKOZEN LIJST
+  const handleAddSpotToList = (spotId, listId) => {
+    setSavedLists(prev => prev.map(list => {
+      if (list.id === listId) {
+        if (!list.spots.includes(spotId)) {
+          return { ...list, spots: [...list.spots, spotId] };
+        }
+      }
+      return list;
+    }));
+  };
+
   const navigateToSpot = (spotId) => {
     const foundSpot = spots.find(s => s.id === spotId);
     if (foundSpot) { setPreviousView(currentView); setActiveSpot(foundSpot); setCurrentView('detail'); }
@@ -120,14 +143,24 @@ export default function LocaVibesApp() {
       {currentView === 'all_places' && <AllPlacesView spots={spots} onSelectCity={(city) => { setActiveCityObj(city); setCurrentView('city_detail'); }} onSelectSpot={navigateToSpot} onAddClick={() => setCurrentView('add_spot')} searchQuery={searchQuery} setSearchQuery={setSearchQuery} />}
       {currentView === 'city_detail' && <CityDetailView spots={spots} city={activeCityObj} onSelectSpot={navigateToSpot} onBack={() => setCurrentView('all_places')} />}
       {currentView === 'add_spot' && <AddSpotView onBack={() => setCurrentView('all_places')} onSave={handleAddSpot} />}
-      {currentView === 'detail' && <SpotDetail spot={spots.find(s => s.id === activeSpot?.id)} onBack={() => setCurrentView(previousView)} onRate={() => setCurrentView('have_been')} />}
+      
+      {currentView === 'detail' && (
+        <SpotDetail 
+          spot={spots.find(s => s.id === activeSpot?.id)} 
+          onBack={() => setCurrentView(previousView)} 
+          onRate={() => setCurrentView('have_been')} 
+          lists={savedLists}
+          onAddToList={handleAddSpotToList}
+        />
+      )}
+      
       {currentView === 'have_been' && <HaveBeenView spot={activeSpot} onBack={() => setCurrentView('detail')} onSubmit={(r, tags) => handleReviewSubmit(activeSpot.id, r, tags)} />}
       
       {currentView === 'saved' && <SavedView lists={savedLists} onOpenList={(id) => { setActiveListId(id); setCurrentView('list_detail'); }} onCreateClick={() => setCurrentView('create_list')} />}
       {currentView === 'create_list' && <CreateListView onBack={() => setCurrentView('saved')} onSave={handleCreateList} />}
       {currentView === 'list_detail' && <ListDetailView list={savedLists.find(l => l.id === activeListId)} allSpots={spots} onBack={() => setCurrentView('saved')} onSelectSpot={navigateToSpot} onUpdateNotes={(id, n) => setSavedLists(prev => prev.map(l => l.id === id ? { ...l, notes: n } : l))} onUpdateDates={(id, d) => setSavedLists(prev => prev.map(l => l.id === id ? { ...l, dates: d } : l))} />}
       
-      {currentView === 'profile' && <ProfileView isLive={isLive} listsCount={savedLists.length} userEmail={user.email} />}
+      {currentView === 'profile' && <ProfileView isLive={isLive} listsCount={savedLists.length} userEmail={user.email} onBulkImport={fetchSpots} />}
 
       <nav className="fixed bottom-0 w-full bg-white/90 backdrop-blur-md border-t border-gray-100 pb-safe pt-3 px-6 pb-4 z-40">
         <div className="flex justify-between items-center max-w-md mx-auto text-gray-400">
@@ -253,7 +286,7 @@ function HomeFeed({ spots, onSelectSpot }) {
             {spots.length === 0 ? (
               <div className="bg-gray-50 border border-gray-200 rounded-3xl p-8 text-center mr-5">
                 <p className="font-bold text-gray-500">It's quiet here...</p>
-                <p className="text-xs text-gray-400 mt-2">Go to 'All Places' and add your first spots to the database!</p>
+                <p className="text-xs text-gray-400 mt-2">Go to 'Profile' to import your Excel data or add manually under 'All Places'!</p>
               </div>
             ) : (
               <div className="flex gap-4 overflow-x-auto no-scrollbar pr-5 pb-4 snap-x snap-mandatory">
@@ -428,9 +461,20 @@ function AddSpotView({ onBack, onSave }) {
   );
 }
 
-function SpotDetail({ spot, onBack, onRate }) {
+// --- 5. SPOT DETAIL SCREEN (WITH ADD TO LIST DROPDOWN) ---
+function SpotDetail({ spot, onBack, onRate, lists, onAddToList }) {
+  const [selectedListId, setSelectedListId] = useState('');
+  const [savedStatus, setSavedStatus] = useState('');
+
   if (!spot) return null;
   const overall = ((spot.rating?.food + spot.rating?.service + spot.rating?.vibe) / 3).toFixed(1);
+
+  const handleSaveToList = () => {
+    if (!selectedListId) return;
+    onAddToList(spot.id, selectedListId);
+    setSavedStatus('Saved!');
+    setTimeout(() => setSavedStatus(''), 2000);
+  };
 
   return (
     <div className="animate-in slide-in-from-right duration-200 pb-20">
@@ -458,6 +502,30 @@ function SpotDetail({ spot, onBack, onRate }) {
         <div className="grid grid-cols-2 gap-3">
           <a href={spot.bookingUrl} target="_blank" rel="noreferrer" className="bg-gray-900 text-white font-bold py-3.5 rounded-2xl shadow-md flex items-center justify-center gap-2 text-sm"><CalendarDays className="w-4 h-4"/> Book</a>
           <button onClick={onRate} className="bg-white border border-gray-200 text-gray-900 font-bold py-3.5 rounded-2xl shadow-sm flex items-center justify-center gap-2 text-sm"><Check className="w-4 h-4"/> Have you been?</button>
+        </div>
+
+        {/* NIEUWE STRATEGISCHE OPTIE: ADD TO LIST SELECTOR */}
+        <div className="bg-white p-4 rounded-3xl border border-gray-100 shadow-sm space-y-2.5">
+          <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Add to your collections</label>
+          <div className="flex gap-2">
+            <select 
+              value={selectedListId} 
+              onChange={(e) => setSelectedListId(e.target.value)} 
+              className="flex-1 bg-gray-50 border border-gray-100 rounded-xl px-3 py-2.5 text-xs font-bold focus:outline-gray-900 text-gray-700"
+            >
+              <option value="">Choose a list...</option>
+              {lists.map(l => (
+                <option key={l.id} value={l.id}>{l.name}</option>
+              ))}
+            </select>
+            <button 
+              onClick={handleSaveToList}
+              disabled={!selectedListId}
+              className={`px-5 py-2.5 rounded-xl font-bold text-xs shadow-sm transition-all ${selectedListId ? 'bg-gray-900 text-white active:scale-95' : 'bg-gray-100 text-gray-400 cursor-not-allowed'}`}
+            >
+              {savedStatus || 'Save'}
+            </button>
+          </div>
         </div>
 
         <div className="flex gap-4">
@@ -602,13 +670,82 @@ function ListDetailView({ list, allSpots, onBack, onSelectSpot, onUpdateNotes, o
           <h2 className="text-sm font-black text-gray-900 mb-2 uppercase tracking-wider flex items-center gap-2"><Edit3 className="w-4 h-4 text-gray-900"/> Trip Notes</h2>
           <textarea value={notes} onChange={(e) => setNotes(e.target.value)} onBlur={() => onUpdateNotes(list.id, notes)} className="w-full bg-white border border-gray-200 rounded-2xl p-4 text-sm text-gray-700 min-h-[120px] focus:outline-gray-900 shadow-sm" placeholder="Type notes, budgets or booking references here..." />
         </div>
+        <div>
+          <h2 className="text-sm font-black text-gray-900 mb-3 uppercase tracking-wider">Saved Hotspots</h2>
+          <div className="space-y-3">
+            {listSpots.map(spot => (
+              <div key={spot.id} onClick={() => onSelectSpot(spot.id)} className="bg-white rounded-2xl p-2 flex items-center gap-4 shadow-sm border border-gray-100 cursor-pointer">
+                <img src={spot.image} className="w-16 h-16 rounded-xl object-cover shrink-0" alt="" />
+                <div className="flex-1">
+                  <h3 className="font-bold text-gray-900 text-sm">{spot.name}</h3>
+                  <p className="text-[10px] text-gray-400 font-medium">{spot.city}</p>
+                </div>
+                <ChevronLeft className="w-4 h-4 text-gray-300 rotate-180 mr-2" />
+              </div>
+            ))}
+            {listSpots.length === 0 && <p className="text-xs text-gray-400 text-center py-4">No hotspots saved in this list yet.</p>}
+          </div>
+        </div>
       </div>
     </div>
   );
 }
 
-function ProfileView({ isLive, listsCount, userEmail }) {
+function ProfileView({ isLive, listsCount, userEmail, onBulkImport }) {
+  const [importStatus, setImportStatus] = useState('');
   const handleLogout = () => signOut(auth);
+
+  const handleCSVUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    setImportStatus('Reading file...');
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      try {
+        const text = event.target.result;
+        const lines = text.split('\n');
+        const headers = lines[0].split(',').map(h => h.trim().replace(/["\r]/g, ''));
+        
+        let successCount = 0;
+        setImportStatus(`Importing spots...`);
+
+        for (let i = 1; i < lines.length; i++) {
+          if (!lines[i].trim()) continue;
+          
+          const values = lines[i].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(v => v.trim().replace(/^"|"$/g, '').replace(/\r/g, ''));
+          const rowData = {};
+          headers.forEach((header, index) => {
+            rowData[header] = values[index] || '';
+          });
+
+          if (!rowData.name || !rowData.city) continue;
+
+          await addDoc(collection(db, "spots"), {
+            name: rowData.name,
+            city: rowData.city,
+            type: rowData.type || 'Restaurant',
+            cuisine: rowData.cuisine || '',
+            dresscode: rowData.dresscode || '',
+            image: rowData.image || 'https://images.unsplash.com/photo-1514933651103-005eec06c04b?q=80&w=1000',
+            addressUrl: rowData.addressUrl || `https://maps.google.com/?q=$$$${encodeURIComponent(rowData.name)}+${encodeURIComponent(rowData.city)}`,
+            websiteUrl: rowData.websiteUrl || '',
+            instagramUrl: rowData.instagramUrl || '',
+            bookingUrl: rowData.bookingUrl || '',
+            tags: [],
+            rating: { food: 5, service: 5, vibe: 5, totalVotes: 1 }
+          });
+          successCount++;
+        }
+
+        setImportStatus(`Successfully imported ${successCount} spots!`);
+        onBulkImport(); 
+      } catch (err) {
+        setImportStatus(`Error: ${err.message}`);
+      }
+    };
+    reader.readAsText(file);
+  };
 
   return (
     <div className="p-5 max-w-md mx-auto pt-16 space-y-6 animate-in fade-in duration-200">
@@ -622,8 +759,26 @@ function ProfileView({ isLive, listsCount, userEmail }) {
           <p className="text-xs text-gray-500 font-bold">{userEmail}</p>
         </div>
       </div>
+      
       <div className="space-y-3">
-        <h2 className="text-sm font-black text-gray-900 mb-2 uppercase tracking-wider pl-1">Settings & App</h2>
+        <h2 className="text-sm font-black text-gray-900 mb-2 uppercase tracking-wider pl-1">Admin Tools</h2>
+        
+        <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm space-y-3">
+          <div className="flex items-center gap-4">
+            <div className="bg-gray-100 p-2 rounded-full text-gray-600"><Upload className="w-5 h-5"/></div>
+            <div className="flex-1">
+              <h3 className="font-bold text-sm text-gray-900">Import Spots from CSV</h3>
+              <p className="text-[10px] text-gray-400">Upload your Excel template (.csv)</p>
+            </div>
+          </div>
+          <label className="w-full bg-gray-900 text-white font-bold py-2.5 rounded-xl text-xs flex items-center justify-center cursor-pointer active:scale-98 transition-transform">
+            Select .CSV File
+            <input type="file" accept=".csv" onChange={handleCSVUpload} className="hidden" />
+          </label>
+          {importStatus && <p className="text-[11px] font-bold text-center text-pink-600 animate-pulse">{importStatus}</p>}
+        </div>
+
+        <h2 className="text-sm font-black text-gray-900 mb-2 uppercase tracking-wider pl-1 mt-6">Settings & App</h2>
         <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm flex items-center gap-4">
           <div className={`p-2 rounded-full ${isLive ? 'bg-gray-100 text-gray-900' : 'bg-red-50 text-red-500'}`}><ShieldAlert className="w-5 h-5"/></div>
           <div className="flex-1">
