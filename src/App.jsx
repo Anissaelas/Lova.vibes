@@ -2,16 +2,16 @@ import React, { useState, useEffect } from 'react';
 import { 
   Compass, LayoutGrid, Heart, User, MapPin, ChevronLeft, ArrowLeft, 
   Utensils, Camera, Flame, Globe, Plus, Search, Info, Check, Instagram, CalendarDays, 
-  ShieldAlert, Share2, Edit3, Settings, LogOut, Grid
+  ShieldAlert, Share2, Edit3, Settings, LogOut, Grid, Calendar
 } from 'lucide-react';
 
 import { db } from './firebase';
 import { collection, getDocs, doc, updateDoc, increment, arrayUnion, addDoc } from 'firebase/firestore';
 
-// --- JOUW SPECIFIEKE TAGS PER CATEGORIE ---
+// --- CURATED VIBE TAGS PER CATEGORY (UK ENGLISH) ---
 const VIBE_TAGS = {
-  'Restaurant': ['Business', 'Party', 'Quiet', 'Luxury', 'Solo-friendly', 'Group-friendly', 'First date', 'Anniversary/Romantic', 'Vega/Vegan friendly', 'Gluten-free', 'Halal', 'Great cocktails', 'Fine dining', 'Affordable luxury', 'Instagrammable', 'Worth the hype', 'Worth the queue', 'Unique presentation', 'Food show', 'Hidden gem', 'Secret entrance', 'Sunset view', 'Golden hour', 'Aesthetic interior', 'Dresscode required', 'Card only', 'Cash only', 'Hard to book'],
-  'Beach Club': ['Infinity pool', 'Daybed rental', 'Sunset view', 'Adults only', 'Golden hour', 'Aesthetic interior', 'Dresscode required', 'Card only', 'Cash only', 'Hard to book', 'Party', 'Quiet', 'Solo-friendly', 'Group-friendly', 'Vega/Vegan', 'Gluten-free', 'Halal', 'Great cocktails', 'Instagrammable', 'Worth the hype', 'Worth the queue', 'Unique presentation', 'Show', 'Hidden gem', 'DJ'],
+  'Restaurant': ['Business', 'Party', 'Quiet', 'Luxury', 'Solo-friendly', 'Group-friendly', 'First date', 'Anniversary/Romantic', 'Vega/Vegan friendly', 'Gluten-free', 'Halal', 'Great cocktails', 'Fine dining', 'Affordable luxury', 'Instagrammable', 'Worth the hype', 'Worth the queue', 'Unique presentation', 'Food show', 'Hidden gem', 'Secret entrance', 'Sunset view', 'Golden hour spot', 'Aesthetic interior', 'Dress code required', 'Card only', 'Cash only', 'Hard to book'],
+  'Beach Club': ['Infinity pool', 'Daybed rental required', 'Sunset view', 'Adults only', 'Golden hour spot', 'Aesthetic interior', 'Dress code required', 'Card only', 'Cash only', 'Hard to book', 'Party', 'Quiet', 'Solo-friendly', 'Group-friendly', 'Vega/Vegan friendly', 'Gluten-free', 'Halal', 'Great cocktails', 'Instagrammable', 'Worth the hype', 'Worth the queue', 'Unique presentation', 'Live show', 'Hidden gem', 'Resident DJ'],
   'Hotel': ['View from bed', 'Outdoor bathtub / Jacuzzi', 'Private pool', 'Aesthetic bathroom', 'Boutique hotel', 'Adults only', 'All-inclusive luxury', 'Rooftop pool', 'Rooftop Bar', 'Instagrammable lobby', 'Spa & Wellness', 'Day pass available', 'Workation friendly']
 };
 
@@ -26,7 +26,7 @@ const MOCK_CITIES = [
 
 const BACKUP_SPOTS = [
   { id: 'spot_1', name: 'Casa Blanca', subtitle: 'Bodrum, Turkey', city: 'Bodrum', type: 'Restaurant', cuisine: 'Mediterranean Fusion', dresscode: 'Smart Casual', image: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?q=80&w=1000', addressUrl: 'https://maps.google.com/?q=Casa+Blanca+Bodrum', websiteUrl: 'https://google.com', instagramUrl: 'https://instagram.com', bookingUrl: 'https://opentable.com', rating: { food: 4.5, service: 4.0, vibe: 4.5, totalVotes: 1 }, tags: ['Instagrammable', 'Sunset view'] },
-  { id: 'spot_2', name: 'Lumière', subtitle: 'Cannes, France', city: 'Cannes', type: 'Restaurant', cuisine: 'French', dresscode: 'Elegant', image: 'https://images.unsplash.com/photo-1582650570392-809ab43f0be7?q=80&w=1000', addressUrl: 'https://maps.google.com/?q=Casa+Blanca+Bodrum', websiteUrl: 'https://google.com', instagramUrl: 'https://instagram.com', bookingUrl: 'https://opentable.com', rating: { food: 4.8, service: 4.6, vibe: 4.9, totalVotes: 1 }, tags: ['Luxury', 'Fine dining'] }
+  { id: 'spot_2', name: 'Lumière', subtitle: 'Cannes, France', city: 'Cannes', type: 'Restaurant', cuisine: 'French Fine Dining', dresscode: 'Elegant', image: 'https://images.unsplash.com/photo-1582650570392-809ab43f0be7?q=80&w=1000', addressUrl: 'https://maps.google.com/?q=Casa+Blanca+Bodrum', websiteUrl: 'https://google.com', instagramUrl: 'https://instagram.com', bookingUrl: 'https://opentable.com', rating: { food: 4.8, service: 4.6, vibe: 4.9, totalVotes: 1 }, tags: ['Luxury', 'Fine dining'] }
 ];
 
 export default function LocaVibesApp() {
@@ -39,9 +39,9 @@ export default function LocaVibesApp() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isLive, setIsLive] = useState(false);
 
-  // --- STATE VOOR MY LISTS ---
+  // --- STATE FOR MY LISTS (WITH TRIP DATES & NOTES) ---
   const [savedLists, setSavedLists] = useState([
-    { id: 'l1', name: 'Girls Bodrum 🌸', coverImage: 'https://images.unsplash.com/photo-1524661135-423995f22d0b?q=80&w=500', spots: ['spot_1'], notes: 'Dit wordt de leukste trip ooit! Eerste avond Casa Blanca boeken.' }
+    { id: 'l1', name: 'Girls Bodrum Trip 🌸', coverImage: 'https://images.unsplash.com/photo-1524661135-423995f22d0b?q=80&w=500', spots: ['spot_1'], notes: 'Book Casa Blanca for the first night. Sunset view is insane!', dates: '12 June - 19 June 2026' }
   ]);
 
   const fetchSpots = async () => {
@@ -96,13 +96,14 @@ export default function LocaVibesApp() {
     } catch (error) { alert(error.message); }
   };
 
-  const handleCreateList = (listName, coverImage) => {
+  const handleCreateList = (listName, coverImage, tripDates) => {
     const newList = {
       id: `list_${Date.now()}`,
       name: listName,
       coverImage: coverImage || 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=500',
       spots: [],
-      notes: ''
+      notes: '',
+      dates: tripDates || 'Dates not set'
     };
     setSavedLists([...savedLists, newList]);
     setCurrentView('saved');
@@ -110,6 +111,10 @@ export default function LocaVibesApp() {
 
   const handleUpdateNotes = (listId, newNotes) => {
     setSavedLists(prev => prev.map(l => l.id === listId ? { ...l, notes: newNotes } : l));
+  };
+
+  const handleUpdateDates = (listId, newDates) => {
+    setSavedLists(prev => prev.map(l => l.id === listId ? { ...l, dates: newDates } : l));
   };
 
   const navigateToSpot = (spotId) => {
@@ -127,13 +132,14 @@ export default function LocaVibesApp() {
       {currentView === 'detail' && <SpotDetail spot={spots.find(s => s.id === activeSpot?.id)} onBack={() => setCurrentView(previousView)} onRate={() => setCurrentView('have_been')} />}
       {currentView === 'have_been' && <HaveBeenView spot={activeSpot} onBack={() => setCurrentView('detail')} onSubmit={(r, tags) => handleReviewSubmit(activeSpot.id, r, tags)} />}
       
-      {/* NIEUWE LIST VIEWS */}
+      {/* MY LISTS VIEWS */}
       {currentView === 'saved' && <SavedView lists={savedLists} allSpots={spots} onSelectSpot={navigateToSpot} onCreateClick={() => setCurrentView('create_list')} onOpenList={(id) => { setActiveListId(id); setCurrentView('list_detail'); }} />}
       {currentView === 'create_list' && <CreateListView onBack={() => setCurrentView('saved')} onSave={handleCreateList} />}
-      {currentView === 'list_detail' && <ListDetailView list={savedLists.find(l => l.id === activeListId)} allSpots={spots} onBack={() => setCurrentView('saved')} onSelectSpot={navigateToSpot} onUpdateNotes={handleUpdateNotes} />}
+      {currentView === 'list_detail' && <ListDetailView list={savedLists.find(l => l.id === activeListId)} allSpots={spots} onBack={() => setCurrentView('saved')} onSelectSpot={navigateToSpot} onUpdateNotes={handleUpdateNotes} onUpdateDates={handleUpdateDates} />}
       
       {currentView === 'profile' && <ProfileView isLive={isLive} listsCount={savedLists.length} />}
 
+      {/* REORDERED NAVIGATION BAR */}
       <nav className="fixed bottom-0 w-full bg-white/90 backdrop-blur-md border-t border-gray-100 pb-safe pt-3 px-6 pb-4 z-40">
         <div className="flex justify-between items-center max-w-md mx-auto text-gray-400">
           <button onClick={() => setCurrentView('all_places')} className={`flex flex-col items-center gap-1 ${currentView === 'all_places' || currentView === 'city_detail' ? 'text-pink-500 font-bold' : ''}`}><LayoutGrid className="w-6 h-6" /><span className="text-[10px]">All Places</span></button>
@@ -324,7 +330,7 @@ function CityDetailView({ spots, city, onSelectSpot, onBack }) {
   );
 }
 
-// --- 4. TOEVOEGEN VAN EEN NIEUWE PLEK ---
+// --- 4. ADD A NEW SPOT ---
 function AddSpotView({ onBack, onSave }) {
   const [name, setName] = useState('');
   const [city, setCity] = useState('');
@@ -341,16 +347,16 @@ function AddSpotView({ onBack, onSave }) {
         <h1 className="text-xl font-bold">Add a Spot</h1>
       </header>
       <div className="space-y-4 bg-white p-6 rounded-3xl border shadow-sm">
-        <div><label className="text-xs font-bold text-gray-500">Spot Name</label><input type="text" value={name} onChange={e=>setName(e.target.value)} className="w-full bg-gray-50 p-3 rounded-xl mt-1" /></div>
-        <div><label className="text-xs font-bold text-gray-500">City</label><input type="text" value={city} onChange={e=>setCity(e.target.value)} className="w-full bg-gray-50 p-3 rounded-xl mt-1" /></div>
-        <div><label className="text-xs font-bold text-gray-500">Type</label><select value={type} onChange={e=>setType(e.target.value)} className="w-full bg-gray-50 p-3 rounded-xl mt-1"><option>Restaurant</option><option>Beach Club</option><option>Hotel</option></select></div>
-        <button onClick={handleSave} className="w-full bg-pink-500 text-white font-bold py-4 rounded-2xl shadow-lg mt-4">Save</button>
+        <div><label className="text-xs font-bold text-gray-500">Spot Name</label><input type="text" value={name} onChange={e=>setName(e.target.value)} className="w-full bg-gray-50 p-3 rounded-xl mt-1 focus:outline-pink-500" /></div>
+        <div><label className="text-xs font-bold text-gray-500">City</label><input type="text" value={city} onChange={e=>setCity(e.target.value)} className="w-full bg-gray-50 p-3 rounded-xl mt-1 focus:outline-pink-500" /></div>
+        <div><label className="text-xs font-bold text-gray-500">Type</label><select value={type} onChange={e=>setType(e.target.value)} className="w-full bg-gray-50 p-3 rounded-xl mt-1 focus:outline-pink-500"><option>Restaurant</option><option>Beach Club</option><option>Hotel</option></select></div>
+        <button onClick={handleSave} className="w-full bg-pink-500 text-white font-bold py-4 rounded-2xl shadow-lg mt-4">Save to Database</button>
       </div>
     </div>
   );
 }
 
-// --- 5. SPOT DETAIL SCHERM (FOTO UPLOAD VERWIJDERD!) ---
+// --- 5. SPOT DETAIL SCREEN ---
 function SpotDetail({ spot, onBack, onRate }) {
   if (!spot) return null;
   const overall = ((spot.rating?.food + spot.rating?.service + spot.rating?.vibe) / 3).toFixed(1);
@@ -385,7 +391,7 @@ function SpotDetail({ spot, onBack, onRate }) {
 
         <div className="flex gap-4">
           <div className="flex-1 bg-white p-3.5 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-3"><div className="bg-pink-50 p-2 rounded-full text-pink-500"><Utensils className="w-4 h-4"/></div><div><p className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Cuisine</p><p className="text-xs font-bold text-gray-900 truncate">{spot.cuisine || 'International'}</p></div></div>
-          <div className="flex-1 bg-white p-3.5 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-3"><div className="bg-blue-50 p-2 rounded-full text-blue-500"><Info className="w-4 h-4"/></div><div><p className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Dresscode</p><p className="text-xs font-bold text-gray-900 truncate">{spot.dresscode || 'Smart Casual'}</p></div></div>
+          <div className="flex-1 bg-white p-3.5 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-3"><div className="bg-blue-50 p-2 rounded-full text-blue-500"><Info className="w-4 h-4"/></div><div><p className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Dress Code</p><p className="text-xs font-bold text-gray-900 truncate">{spot.dresscode || 'Smart Casual'}</p></div></div>
         </div>
 
         {spot.tags && spot.tags.length > 0 && (
@@ -438,8 +444,8 @@ function HaveBeenView({ spot, onBack, onSubmit }) {
   );
 }
 
-// --- 7. SAVED VIEW (NIEUW: MET PLUS-KNOP) ---
-function SavedView({ lists, allSpots, onSelectSpot, onCreateClick, onOpenList }) {
+// --- 7. SAVED VIEW / MY LISTS ---
+function SavedView({ lists, onCreateClick, onOpenList }) {
   return (
     <div className="p-5 max-w-md mx-auto space-y-4 animate-in fade-in duration-200">
       <div className="flex justify-between items-center mb-4">
@@ -450,7 +456,7 @@ function SavedView({ lists, allSpots, onSelectSpot, onCreateClick, onOpenList })
       <div className="grid grid-cols-2 gap-4">
         {lists.map(list => (
           <div key={list.id} onClick={() => onOpenList(list.id)} className="relative h-48 rounded-3xl overflow-hidden cursor-pointer shadow-sm group active:scale-95 transition-all">
-            <img src={list.coverImage} className="w-full h-full object-cover" />
+            <img src={list.coverImage} className="w-full h-full object-cover" alt={list.name} />
             <div className="absolute inset-0 bg-gradient-to-t from-gray-900/80 to-transparent"></div>
             <div className="absolute bottom-4 left-4 right-4 text-white">
               <h2 className="text-sm font-bold leading-tight">{list.name}</h2>
@@ -458,55 +464,59 @@ function SavedView({ lists, allSpots, onSelectSpot, onCreateClick, onOpenList })
             </div>
           </div>
         ))}
-        {lists.length === 0 && <p className="text-gray-400 text-sm mt-4 col-span-2 text-center">Je hebt nog geen lijstjes. Maak er één aan!</p>}
+        {lists.length === 0 && <p className="text-gray-400 text-sm mt-4 col-span-2 text-center">No lists created yet. Tap the + to start!</p>}
       </div>
     </div>
   );
 }
 
-// --- 8. NIEUWE LIJST AANMAKEN ---
+// --- 8. CREATE LIST VIEW (WITH TRIP DATES INPUT) ---
 function CreateListView({ onBack, onSave }) {
   const [name, setName] = useState('');
   const [coverImage, setCoverImage] = useState('');
+  const [tripDates, setTripDates] = useState('');
 
   return (
     <div className="p-5 max-w-md mx-auto space-y-6 animate-in slide-in-from-bottom duration-200">
       <header className="flex items-center gap-4">
         <button onClick={onBack} className="p-2 bg-white rounded-full border"><ArrowLeft className="w-5 h-5" /></button>
-        <h1 className="text-xl font-bold">Nieuwe Lijst</h1>
+        <h1 className="text-xl font-bold">New List</h1>
       </header>
       <div className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm space-y-4">
         <div>
-          <label className="text-xs font-bold text-gray-500">Lijst Naam</label>
-          <input type="text" value={name} onChange={e=>setName(e.target.value)} className="w-full bg-gray-50 p-3 rounded-xl mt-1 focus:outline-pink-500" placeholder="e.g. Mykonos Bachelorette 💍" />
+          <label className="text-xs font-bold text-gray-500">List Name</label>
+          <input type="text" value={name} onChange={e=>setName(e.target.value)} className="w-full bg-gray-50 p-3 rounded-xl mt-1 focus:outline-pink-500" placeholder="e.g. Ibiza Opening Week 🌸" />
         </div>
         <div>
-          <label className="text-xs font-bold text-gray-500">Foto (Plaats een URL linkje)</label>
-          <input type="text" value={coverImage} onChange={e=>setCoverImage(e.target.value)} className="w-full bg-gray-50 p-3 rounded-xl mt-1 focus:outline-pink-500" placeholder="https://..." />
+          <label className="text-xs font-bold text-gray-500">Trip Dates</label>
+          <input type="text" value={tripDates} onChange={e=>setTripDates(e.target.value)} className="w-full bg-gray-50 p-3 rounded-xl mt-1 focus:outline-pink-500" placeholder="e.g. 12 July - 19 July 2026" />
         </div>
-        <button onClick={() => name && onSave(name, coverImage)} className="w-full bg-pink-500 text-white font-bold py-4 rounded-2xl shadow-lg mt-4">Aanmaken</button>
+        <div>
+          <label className="text-xs font-bold text-gray-500">Cover Image URL</label>
+          <input type="text" value={coverImage} onChange={e=>setCoverImage(e.target.value)} className="w-full bg-gray-50 p-3 rounded-xl mt-1 focus:outline-pink-500" placeholder="https://images.unsplash.com/..." />
+        </div>
+        <button onClick={() => name && onSave(name, coverImage, tripDates)} className="w-full bg-pink-500 text-white font-bold py-4 rounded-2xl shadow-lg mt-4">Create List</button>
       </div>
     </div>
   );
 }
 
-// --- 9. DETAIL VAN EEN LIJST (DELEN & AANTEKENINGEN) ---
-function ListDetailView({ list, allSpots, onBack, onSelectSpot, onUpdateNotes }) {
+// --- 9. LIST DETAIL VIEW (DATES & NOTES WORK LIVE) ---
+function ListDetailView({ list, allSpots, onBack, onSelectSpot, onUpdateNotes, onUpdateDates }) {
   if (!list) return null;
   const listSpots = allSpots.filter(s => list.spots.includes(s.id));
   const [notes, setNotes] = useState(list.notes || '');
+  const [dates, setDates] = useState(list.dates || '');
 
-  // Dit roept de deelfunctie (zoals WhatsApp) van de telefoon aan
   const shareList = () => {
-    const text = `Check my LocaVibes list: ${list.name}! Includes: ${listSpots.map(s => s.name).join(', ')}`;
-    const url = `whatsapp://send?text=${encodeURIComponent(text)}`;
-    window.location.href = url;
+    const text = `Check out my LocaVibes list: ${list.name}! Trip Dates: ${dates}. Spots: ${listSpots.map(s => s.name).join(', ')}`;
+    window.location.href = `whatsapp://send?text=${encodeURIComponent(text)}`;
   };
 
   return (
     <div className="animate-in slide-in-from-right duration-200">
       <div className="relative h-64 w-full">
-        <img src={list.coverImage} className="w-full h-full object-cover" />
+        <img src={list.coverImage} className="w-full h-full object-cover" alt="" />
         <div className="absolute inset-0 bg-black/30"></div>
         <button onClick={onBack} className="absolute top-12 left-5 p-2 bg-white/20 backdrop-blur-md rounded-full text-white"><ChevronLeft /></button>
         <div className="absolute bottom-6 left-6 text-white">
@@ -517,26 +527,40 @@ function ListDetailView({ list, allSpots, onBack, onSelectSpot, onUpdateNotes })
 
       <div className="p-5 max-w-md mx-auto space-y-6">
         <button onClick={shareList} className="w-full bg-[#25D366] text-white font-bold py-3.5 rounded-2xl shadow-md flex items-center justify-center gap-2 active:scale-95">
-          <Share2 className="w-5 h-5"/> Deel via WhatsApp
+          <Share2 className="w-5 h-5"/> Share via WhatsApp
         </button>
 
+        {/* TRIP DATES SECTION */}
         <div>
-          <h2 className="text-sm font-black text-gray-900 mb-2 uppercase tracking-wider flex items-center gap-2"><Edit3 className="w-4 h-4"/> Aantekeningen</h2>
+          <h2 className="text-sm font-black text-gray-900 mb-2 uppercase tracking-wider flex items-center gap-2"><Calendar className="w-4 h-4 text-pink-500"/> Trip Dates</h2>
+          <input 
+            type="text"
+            value={dates}
+            onChange={(e) => setDates(e.target.value)}
+            onBlur={() => onUpdateDates(list.id, dates)}
+            className="w-full bg-white border border-gray-200 rounded-2xl p-4 text-sm text-gray-700 font-bold focus:outline-pink-500 shadow-sm"
+            placeholder="Set trip dates..."
+          />
+        </div>
+
+        {/* NOTES SECTION */}
+        <div>
+          <h2 className="text-sm font-black text-gray-900 mb-2 uppercase tracking-wider flex items-center gap-2"><Edit3 className="w-4 h-4 text-pink-500"/> Trip Notes</h2>
           <textarea 
             value={notes} 
             onChange={(e) => setNotes(e.target.value)}
             onBlur={() => onUpdateNotes(list.id, notes)}
             className="w-full bg-white border border-gray-200 rounded-2xl p-4 text-sm text-gray-700 min-h-[120px] focus:outline-pink-500 shadow-sm"
-            placeholder="Typ hier aantekeningen, budgetten of wie wat boekt..."
+            placeholder="Type notes, budgets or booking references here..."
           />
         </div>
 
         <div>
-          <h2 className="text-sm font-black text-gray-900 mb-3 uppercase tracking-wider">Hotspots</h2>
+          <h2 className="text-sm font-black text-gray-900 mb-3 uppercase tracking-wider">Saved Hotspots</h2>
           <div className="space-y-3">
             {listSpots.map(spot => (
               <div key={spot.id} onClick={() => onSelectSpot(spot.id)} className="bg-white rounded-2xl p-2 flex items-center gap-4 shadow-sm border border-gray-100 cursor-pointer">
-                <img src={spot.image} className="w-16 h-16 rounded-xl object-cover shrink-0" />
+                <img src={spot.image} className="w-16 h-16 rounded-xl object-cover shrink-0" alt="" />
                 <div className="flex-1">
                   <h3 className="font-bold text-gray-900 text-sm">{spot.name}</h3>
                   <p className="text-[10px] text-gray-400 font-medium">{spot.city}</p>
@@ -544,7 +568,7 @@ function ListDetailView({ list, allSpots, onBack, onSelectSpot, onUpdateNotes })
                 <ChevronLeft className="w-4 h-4 text-gray-300 rotate-180 mr-2" />
               </div>
             ))}
-            {listSpots.length === 0 && <p className="text-xs text-gray-400 text-center py-4">Nog geen plekken opgeslagen. Voeg ze toe vanuit de feed!</p>}
+            {listSpots.length === 0 && <p className="text-xs text-gray-400 text-center py-4">No hotspots saved in this list yet.</p>}
           </div>
         </div>
       </div>
@@ -552,7 +576,7 @@ function ListDetailView({ list, allSpots, onBack, onSelectSpot, onUpdateNotes })
   );
 }
 
-// --- 10. PROFILE VIEW (VOLLEDIG FUNCTIONEEL DESIGN) ---
+// --- 10. PROFILE VIEW ---
 function ProfileView({ isLive, listsCount }) {
   return (
     <div className="p-5 max-w-md mx-auto pt-16 space-y-6 animate-in fade-in duration-200">
@@ -560,7 +584,7 @@ function ProfileView({ isLive, listsCount }) {
         <div className="absolute top-0 left-0 right-0 h-24 bg-gradient-to-r from-pink-400 to-rose-400"></div>
         <div className="relative mt-8">
           <div className="w-24 h-24 rounded-full overflow-hidden mx-auto border-4 border-white shadow-lg bg-white">
-            <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=200" className="w-full h-full object-cover" />
+            <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=200" className="w-full h-full object-cover" alt="" />
           </div>
           <h1 className="text-xl font-black text-gray-900 mt-3">Sophie L.</h1>
           <p className="text-xs text-pink-500 font-bold">@sophie_vibes</p>
@@ -584,25 +608,25 @@ function ProfileView({ isLive, listsCount }) {
         
         <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm flex items-center gap-4 cursor-pointer hover:bg-gray-50">
           <div className="bg-gray-100 p-2 rounded-full text-gray-600"><Settings className="w-5 h-5"/></div>
-          <div className="flex-1"><h3 className="font-bold text-sm text-gray-900">Account Instellingen</h3><p className="text-[10px] text-gray-400">Wijzig naam of foto</p></div>
+          <div className="flex-1"><h3 className="font-bold text-sm text-gray-900">Account Settings</h3><p className="text-[10px] text-gray-400">Change name or profile photo</p></div>
         </div>
 
         <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm flex items-center gap-4 cursor-pointer hover:bg-gray-50">
           <div className="bg-blue-50 p-2 rounded-full text-blue-500"><Grid className="w-5 h-5"/></div>
-          <div className="flex-1"><h3 className="font-bold text-sm text-gray-900">Verbind Instagram</h3><p className="text-[10px] text-gray-400">Importeer je opgeslagen plekken</p></div>
+          <div className="flex-1"><h3 className="font-bold text-sm text-gray-900">Connect Instagram</h3><p className="text-[10px] text-gray-400">Import your saved places</p></div>
         </div>
 
         <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm flex items-center gap-4">
           <div className={`p-2 rounded-full ${isLive ? 'bg-green-50 text-green-500' : 'bg-red-50 text-red-500'}`}><ShieldAlert className="w-5 h-5"/></div>
           <div className="flex-1">
-            <h3 className="font-bold text-sm text-gray-900">Database Connectie</h3>
-            <p className="text-[10px] text-gray-400">{isLive ? 'Succesvol gekoppeld aan Firebase' : 'Offline modus'}</p>
+            <h3 className="font-bold text-sm text-gray-900">Database Connection</h3>
+            <p className="text-[10px] text-gray-400">{isLive ? 'Connected to live Firebase kluis' : 'Offline backup mode'}</p>
           </div>
         </div>
 
         <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm flex items-center gap-4 cursor-pointer hover:bg-red-50 text-red-500 mt-6">
           <div className="p-2"><LogOut className="w-5 h-5"/></div>
-          <div className="flex-1"><h3 className="font-bold text-sm">Uitloggen</h3></div>
+          <div className="flex-1"><h3 className="font-bold text-sm">Log Out</h3></div>
         </div>
       </div>
     </div>
