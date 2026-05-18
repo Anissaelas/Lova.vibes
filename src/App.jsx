@@ -2,15 +2,18 @@ import React, { useState, useEffect } from 'react';
 import { 
   Compass, LayoutGrid, Heart, User, MapPin, ChevronLeft, ArrowLeft, 
   Utensils, Camera, Flame, Globe, Plus, Search, Info, Check, Instagram, CalendarDays, 
-  ShieldAlert, Share2, Edit3, Settings, LogOut, Grid, Calendar
+  ShieldAlert, Share2, Edit3, Settings, LogOut, Grid, Calendar, Image as ImageIcon
 } from 'lucide-react';
 
 import { db } from './firebase';
 import { collection, getDocs, doc, updateDoc, increment, arrayUnion, addDoc } from 'firebase/firestore';
 
-// --- CURATED VIBE TAGS PER CATEGORY (UK ENGLISH) ---
+// --- CURATED VIBE TAGS PER CATEGORY ---
 const VIBE_TAGS = {
   'Restaurant': ['Business', 'Party', 'Quiet', 'Luxury', 'Solo-friendly', 'Group-friendly', 'First date', 'Anniversary/Romantic', 'Vega/Vegan friendly', 'Gluten-free', 'Halal', 'Great cocktails', 'Fine dining', 'Affordable luxury', 'Instagrammable', 'Worth the hype', 'Worth the queue', 'Unique presentation', 'Food show', 'Hidden gem', 'Secret entrance', 'Sunset view', 'Golden hour spot', 'Aesthetic interior', 'Dress code required', 'Card only', 'Cash only', 'Hard to book'],
+  'Cafe': ['Quiet', 'Workation friendly', 'Solo-friendly', 'Group-friendly', 'Vega/Vegan friendly', 'Gluten-free', 'Instagrammable', 'Aesthetic interior', 'Specialty coffee', 'Hidden gem'],
+  'Lunch': ['Business', 'Quiet', 'Solo-friendly', 'Group-friendly', 'Vega/Vegan friendly', 'Gluten-free', 'Halal', 'Aesthetic interior', 'Healthy options', 'Hidden gem'],
+  'Breakfast': ['Early bird', 'Solo-friendly', 'Group-friendly', 'Vega/Vegan friendly', 'Gluten-free', 'Healthy options', 'Aesthetic interior', 'Specialty coffee', 'Bottomless brunch'],
   'Beach Club': ['Infinity pool', 'Daybed rental required', 'Sunset view', 'Adults only', 'Golden hour spot', 'Aesthetic interior', 'Dress code required', 'Card only', 'Cash only', 'Hard to book', 'Party', 'Quiet', 'Solo-friendly', 'Group-friendly', 'Vega/Vegan friendly', 'Gluten-free', 'Halal', 'Great cocktails', 'Instagrammable', 'Worth the hype', 'Worth the queue', 'Unique presentation', 'Live show', 'Hidden gem', 'Resident DJ'],
   'Hotel': ['View from bed', 'Outdoor bathtub / Jacuzzi', 'Private pool', 'Aesthetic bathroom', 'Boutique hotel', 'Adults only', 'All-inclusive luxury', 'Rooftop pool', 'Rooftop Bar', 'Instagrammable lobby', 'Spa & Wellness', 'Day pass available', 'Workation friendly']
 };
@@ -36,12 +39,10 @@ export default function LocaVibesApp() {
   const [activeListId, setActiveListId] = useState(null);
   const [previousView, setPreviousView] = useState('home');
   const [spots, setSpots] = useState(BACKUP_SPOTS);
-  const [searchQuery, setSearchQuery] = useState('');
   const [isLive, setIsLive] = useState(false);
 
-  // --- STATE FOR MY LISTS (WITH TRIP DATES & NOTES) ---
   const [savedLists, setSavedLists] = useState([
-    { id: 'l1', name: 'Girls Bodrum Trip 🌸', coverImage: 'https://images.unsplash.com/photo-1524661135-423995f22d0b?q=80&w=500', spots: ['spot_1'], notes: 'Book Casa Blanca for the first night. Sunset view is insane!', dates: '12 June - 19 June 2026' }
+    { id: 'l1', name: 'Girls Bodrum Trip', coverImage: 'https://images.unsplash.com/photo-1524661135-423995f22d0b?q=80&w=500', spots: ['spot_1'], notes: 'Book Casa Blanca for the first night. Sunset view is insane!', dates: '12 June - 19 June 2026' }
   ]);
 
   const fetchSpots = async () => {
@@ -126,39 +127,36 @@ export default function LocaVibesApp() {
     <div className="min-h-screen bg-[#FFFDF6] font-sans text-gray-800 pb-28 relative">
       
       {currentView === 'home' && <HomeFeed spots={spots} onSelectSpot={navigateToSpot} />}
-      {currentView === 'all_places' && <AllPlacesView spots={spots} onSelectCity={(city) => { setActiveCityObj(city); setCurrentView('city_detail'); }} onSelectSpot={navigateToSpot} onAddClick={() => setCurrentView('add_spot')} searchQuery={searchQuery} setSearchQuery={setSearchQuery} />}
+      {currentView === 'all_places' && <AllPlacesView spots={spots} onSelectCity={(city) => { setActiveCityObj(city); setCurrentView('city_detail'); }} onSelectSpot={navigateToSpot} onAddClick={() => setCurrentView('add_spot')} />}
       {currentView === 'city_detail' && <CityDetailView spots={spots} city={activeCityObj} onSelectSpot={navigateToSpot} onBack={() => setCurrentView('all_places')} />}
       {currentView === 'add_spot' && <AddSpotView onBack={() => setCurrentView('all_places')} onSave={handleAddSpot} />}
       {currentView === 'detail' && <SpotDetail spot={spots.find(s => s.id === activeSpot?.id)} onBack={() => setCurrentView(previousView)} onRate={() => setCurrentView('have_been')} />}
       {currentView === 'have_been' && <HaveBeenView spot={activeSpot} onBack={() => setCurrentView('detail')} onSubmit={(r, tags) => handleReviewSubmit(activeSpot.id, r, tags)} />}
       
-      {/* MY LISTS VIEWS */}
       {currentView === 'saved' && <SavedView lists={savedLists} allSpots={spots} onSelectSpot={navigateToSpot} onCreateClick={() => setCurrentView('create_list')} onOpenList={(id) => { setActiveListId(id); setCurrentView('list_detail'); }} />}
       {currentView === 'create_list' && <CreateListView onBack={() => setCurrentView('saved')} onSave={handleCreateList} />}
       {currentView === 'list_detail' && <ListDetailView list={savedLists.find(l => l.id === activeListId)} allSpots={spots} onBack={() => setCurrentView('saved')} onSelectSpot={navigateToSpot} onUpdateNotes={handleUpdateNotes} onUpdateDates={handleUpdateDates} />}
       
       {currentView === 'profile' && <ProfileView isLive={isLive} listsCount={savedLists.length} />}
 
-      {/* REORDERED NAVIGATION BAR */}
       <nav className="fixed bottom-0 w-full bg-white/90 backdrop-blur-md border-t border-gray-100 pb-safe pt-3 px-6 pb-4 z-40">
         <div className="flex justify-between items-center max-w-md mx-auto text-gray-400">
-          <button onClick={() => setCurrentView('all_places')} className={`flex flex-col items-center gap-1 ${currentView === 'all_places' || currentView === 'city_detail' ? 'text-pink-500 font-bold' : ''}`}><LayoutGrid className="w-6 h-6" /><span className="text-[10px]">All Places</span></button>
-          <button onClick={() => setCurrentView('home')} className={`flex flex-col items-center gap-1 ${currentView === 'home' ? 'text-pink-500 font-bold' : ''}`}><Compass className="w-6 h-6" /><span className="text-[10px]">Home</span></button>
-          <button onClick={() => setCurrentView('saved')} className={`flex flex-col items-center gap-1 ${currentView === 'saved' || currentView === 'list_detail' ? 'text-pink-500 font-bold' : ''}`}><Heart className="w-6 h-6" /><span className="text-[10px]">My Lists</span></button>
-          <button onClick={() => setCurrentView('profile')} className={`flex flex-col items-center gap-1 ${currentView === 'profile' ? 'text-pink-500 font-bold' : ''}`}><User className="w-6 h-6" /><span className="text-[10px]">Profile</span></button>
+          <button onClick={() => setCurrentView('all_places')} className={`flex flex-col items-center gap-1 ${currentView === 'all_places' || currentView === 'city_detail' ? 'text-gray-900 font-bold' : ''}`}><LayoutGrid className="w-6 h-6" /><span className="text-[10px]">All Places</span></button>
+          <button onClick={() => setCurrentView('home')} className={`flex flex-col items-center gap-1 ${currentView === 'home' ? 'text-gray-900 font-bold' : ''}`}><Compass className="w-6 h-6" /><span className="text-[10px]">Home</span></button>
+          <button onClick={() => setCurrentView('saved')} className={`flex flex-col items-center gap-1 ${currentView === 'saved' || currentView === 'list_detail' ? 'text-gray-900 font-bold' : ''}`}><Heart className="w-6 h-6" /><span className="text-[10px]">My Lists</span></button>
+          <button onClick={() => setCurrentView('profile')} className={`flex flex-col items-center gap-1 ${currentView === 'profile' ? 'text-gray-900 font-bold' : ''}`}><User className="w-6 h-6" /><span className="text-[10px]">Profile</span></button>
         </div>
       </nav>
     </div>
   );
 }
 
-// --- FLAME RATING COMPONENT ---
 function FlameRating({ value, onChange }) {
   return (
     <div className="flex gap-1.5">
       {[1, 2, 3, 4, 5].map((index) => (
         <button key={index} type="button" onClick={() => onChange(index)} className="transition-transform active:scale-125 duration-100">
-          <Flame className={`w-6 h-6 ${index <= value ? 'fill-[#FF1493] text-[#FF1493]' : 'text-gray-200'}`} />
+          <Flame className={`w-6 h-6 ${index <= value ? 'fill-gray-900 text-gray-900' : 'text-gray-200'}`} />
         </button>
       ))}
     </div>
@@ -167,6 +165,9 @@ function FlameRating({ value, onChange }) {
 
 // --- 1. HOME FEED ---
 function HomeFeed({ spots, onSelectSpot }) {
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+
   const top10 = [...spots]
     .filter(s => s.type === 'Restaurant')
     .sort((a, b) => {
@@ -184,75 +185,118 @@ function HomeFeed({ spots, onSelectSpot }) {
     { id: 'sto1', name: 'Scorpios', city: 'Bodrum', expected: 'June 2026', image: 'https://images.unsplash.com/photo-1515238152791-8225bf064fe5?q=80&w=500' }
   ];
 
+  const isSearching = searchQuery.trim().length > 0;
+  const filteredSpots = spots.filter(spot => `${spot.name} ${spot.city} ${spot.type} ${spot.tags?.join(' ')}`.toLowerCase().includes(searchQuery.toLowerCase()));
+
   return (
     <div className="pb-8 animate-in fade-in duration-200">
-      <div className="px-5 pt-10 mb-6">
-        <h1 className="text-3xl font-black text-pink-500 tracking-tighter">LocaVibes.</h1>
-        <p className="text-gray-400 text-sm font-medium mt-1">Curated aesthetics around the globe.</p>
+      <div className="flex justify-between items-center px-5 pt-10 mb-4">
+        <h1 className="text-3xl font-black text-gray-900 tracking-tighter">LOQA.</h1>
+        <button onClick={() => setIsSearchOpen(!isSearchOpen)} className="p-2 bg-white rounded-full border shadow-sm active:scale-95">
+          <Search className="w-5 h-5 text-gray-600" />
+        </button>
       </div>
 
-      <div className="pl-5 mb-10">
-        <h2 className="text-xl font-black text-gray-900 mb-4 tracking-tight flex items-center gap-2">Global Top 10 🏆</h2>
-        <div className="flex gap-4 overflow-x-auto no-scrollbar pr-5 pb-4 snap-x snap-mandatory">
-          {top10.map((spot, index) => {
-            const score = ((spot.rating?.food + spot.rating?.service + spot.rating?.vibe)/3).toFixed(1);
-            return (
-              <div key={spot.id} onClick={() => onSelectSpot(spot.id)} className="snap-start relative min-w-[260px] h-[320px] bg-white rounded-3xl overflow-hidden shadow-lg shadow-gray-200/50 cursor-pointer group shrink-0 active:scale-95 transition-transform">
-                <img src={spot.image} className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
-                <div className="absolute inset-0 bg-gradient-to-t from-gray-900/90 via-gray-900/20 to-transparent"></div>
-                <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-md text-gray-900 w-10 h-10 rounded-full flex items-center justify-center font-black shadow-lg text-lg">#{index + 1}</div>
-                <div className="absolute bottom-5 left-5 right-5 text-white">
-                  <h3 className="font-black text-2xl leading-tight mb-1">{spot.name}</h3>
-                  <p className="text-xs font-bold opacity-80 flex items-center gap-1 mb-3"><MapPin className="w-3.5 h-3.5" /> {spot.city}</p>
-                  <div className="inline-flex bg-gradient-to-r from-pink-500 to-rose-500 backdrop-blur px-3 py-1.5 rounded-xl items-center gap-1.5 shadow-md">
-                    <Flame className="w-4 h-4 fill-white text-white" />
-                    <span className="text-sm font-black">{score}</span>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
+      {isSearchOpen && (
+        <div className="px-5 mb-6 animate-in slide-in-from-top-2">
+          <div className="relative">
+            <Search className="w-5 h-5 absolute left-4 top-3.5 text-gray-400" />
+            <input 
+              type="text" 
+              placeholder="Search spots, cities or vibes..." 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full bg-white border border-gray-100 rounded-2xl py-3.5 pl-12 pr-4 shadow-sm focus:outline-none focus:ring-2 focus:ring-gray-900 font-medium text-sm"
+              autoFocus
+            />
+          </div>
         </div>
-      </div>
+      )}
 
-      <div className="px-5 mb-10">
-        <h2 className="text-xl font-black text-gray-900 mb-4 tracking-tight">Just Opened ✨</h2>
-        <div className="space-y-4">
-          {JUST_OPENED.map(spot => (
-            <div key={spot.id} className="bg-white rounded-2xl p-3 flex items-center gap-4 shadow-sm border border-gray-100 cursor-pointer">
+      {isSearching ? (
+        <div className="px-5 space-y-3">
+          <h2 className="text-sm font-bold text-gray-500 mb-2">Search Results</h2>
+          {filteredSpots.map(spot => (
+            <div key={spot.id} onClick={() => onSelectSpot(spot.id)} className="bg-white rounded-2xl p-2.5 flex items-center gap-4 shadow-sm border border-gray-100 cursor-pointer">
               <img src={spot.image} className="w-20 h-20 rounded-xl object-cover shrink-0" />
-              <div className="flex-1">
-                <h3 className="font-bold text-gray-900 leading-tight">{spot.name}</h3>
-                <p className="text-xs text-pink-500 font-bold mt-0.5">{spot.type}</p>
-                <p className="text-[10px] text-gray-400 font-medium flex items-center gap-1 mt-1"><MapPin className="w-3 h-3"/> {spot.city}</p>
+              <div className="flex-1 overflow-hidden">
+                <h3 className="font-bold text-gray-900 leading-tight truncate">{spot.name}</h3>
+                <p className="text-xs text-gray-500 mt-1 font-bold">{spot.type} • {spot.city}</p>
+                {spot.tags && spot.tags.length > 0 && <p className="text-[10px] text-gray-400 mt-1 truncate">{spot.tags.join(', ')}</p>}
               </div>
-              <div className="bg-pink-50 text-pink-500 px-3 py-1.5 rounded-xl text-xs font-bold uppercase tracking-wider">New</div>
             </div>
           ))}
+          {filteredSpots.length === 0 && <p className="text-center text-gray-400 text-sm mt-8">No spots found matching your vibe.</p>}
         </div>
-      </div>
+      ) : (
+        <>
+          <div className="pl-5 mb-10">
+            <h2 className="text-xl font-black text-gray-900 mb-4 tracking-tight">Global Top 10</h2>
+            <div className="flex gap-4 overflow-x-auto no-scrollbar pr-5 pb-4 snap-x snap-mandatory">
+              {top10.map((spot, index) => {
+                const score = ((spot.rating?.food + spot.rating?.service + spot.rating?.vibe)/3).toFixed(1);
+                return (
+                  <div key={spot.id} onClick={() => onSelectSpot(spot.id)} className="snap-start relative min-w-[260px] h-[320px] bg-white rounded-3xl overflow-hidden shadow-lg shadow-gray-200/50 cursor-pointer group shrink-0 active:scale-95 transition-transform">
+                    <img src={spot.image} className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-gray-900/90 via-gray-900/20 to-transparent"></div>
+                    <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-md text-gray-900 w-10 h-10 rounded-full flex items-center justify-center font-black shadow-lg text-lg">#{index + 1}</div>
+                    <div className="absolute bottom-5 left-5 right-5 text-white">
+                      <h3 className="font-black text-2xl leading-tight mb-1">{spot.name}</h3>
+                      <p className="text-xs font-bold opacity-80 flex items-center gap-1 mb-3"><MapPin className="w-3.5 h-3.5" /> {spot.city}</p>
+                      <div className="inline-flex bg-white/20 border border-white/30 backdrop-blur px-3 py-1.5 rounded-xl items-center gap-1.5 shadow-md">
+                        <Flame className="w-4 h-4 fill-white text-white" />
+                        <span className="text-sm font-black">{score}</span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
 
-      <div className="px-5">
-        <h2 className="text-xl font-black text-gray-900 mb-4 tracking-tight">Soon To Open 🚧</h2>
-        <div className="space-y-4">
-          {SOON_TO_OPEN.map(spot => (
-            <div key={spot.id} className="bg-gray-50 rounded-2xl p-3 flex items-center gap-4 border border-gray-100 cursor-pointer opacity-80">
-              <img src={spot.image} className="w-20 h-20 rounded-xl object-cover shrink-0 grayscale-[40%]" />
-              <div className="flex-1">
-                <h3 className="font-bold text-gray-900 leading-tight">{spot.name}</h3>
-                <p className="text-[10px] text-gray-400 font-medium flex items-center gap-1 mt-1"><MapPin className="w-3 h-3"/> {spot.city}</p>
-              </div>
-              <div className="bg-gray-200 text-gray-600 px-3 py-1.5 rounded-xl text-[10px] font-bold text-center w-24">Expected:<br/>{spot.expected}</div>
+          <div className="px-5 mb-10">
+            <h2 className="text-xl font-black text-gray-900 mb-4 tracking-tight">Just Opened</h2>
+            <div className="space-y-4">
+              {JUST_OPENED.map(spot => (
+                <div key={spot.id} className="bg-white rounded-2xl p-3 flex items-center gap-4 shadow-sm border border-gray-100 cursor-pointer">
+                  <img src={spot.image} className="w-20 h-20 rounded-xl object-cover shrink-0" />
+                  <div className="flex-1">
+                    <h3 className="font-bold text-gray-900 leading-tight">{spot.name}</h3>
+                    <p className="text-xs text-gray-500 font-bold mt-0.5">{spot.type}</p>
+                    <p className="text-[10px] text-gray-400 font-medium flex items-center gap-1 mt-1"><MapPin className="w-3 h-3"/> {spot.city}</p>
+                  </div>
+                  <div className="bg-gray-100 text-gray-900 px-3 py-1.5 rounded-xl text-xs font-bold uppercase tracking-wider">New</div>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
-      </div>
+          </div>
+
+          <div className="px-5">
+            <h2 className="text-xl font-black text-gray-900 mb-4 tracking-tight">Soon To Open</h2>
+            <div className="space-y-4">
+              {SOON_TO_OPEN.map(spot => (
+                <div key={spot.id} className="bg-gray-50 rounded-2xl p-3 flex items-center gap-4 border border-gray-100 cursor-pointer opacity-80">
+                  <img src={spot.image} className="w-20 h-20 rounded-xl object-cover shrink-0 grayscale-[40%]" />
+                  <div className="flex-1">
+                    <h3 className="font-bold text-gray-900 leading-tight">{spot.name}</h3>
+                    <p className="text-[10px] text-gray-400 font-medium flex items-center gap-1 mt-1"><MapPin className="w-3 h-3"/> {spot.city}</p>
+                  </div>
+                  <div className="bg-gray-200 text-gray-600 px-3 py-1.5 rounded-xl text-[10px] font-bold text-center w-24">Expected:<br/>{spot.expected}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }
 
 // --- 2. ALL PLACES ---
-function AllPlacesView({ spots, onSelectCity, onSelectSpot, onAddClick, searchQuery, setSearchQuery }) {
+function AllPlacesView({ spots, onSelectCity, onSelectSpot, onAddClick }) {
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  
   const isSearching = searchQuery.trim().length > 0;
   const filteredSpots = spots.filter(spot => `${spot.name} ${spot.city} ${spot.type} ${spot.tags?.join(' ')}`.toLowerCase().includes(searchQuery.toLowerCase()));
 
@@ -260,12 +304,19 @@ function AllPlacesView({ spots, onSelectCity, onSelectSpot, onAddClick, searchQu
     <div className="p-5 max-w-md mx-auto space-y-4 animate-in fade-in duration-200">
       <div className="flex justify-between items-center mb-2">
         <h1 className="text-2xl font-black text-gray-900 tracking-tight">All Places</h1>
-        <button onClick={onAddClick} className="bg-pink-50 text-pink-500 p-2.5 rounded-full font-bold shadow-sm active:scale-95"><Plus className="w-5 h-5" /></button>
+        <div className="flex gap-2">
+          <button onClick={() => setIsSearchOpen(!isSearchOpen)} className="p-2.5 bg-white rounded-full border shadow-sm active:scale-95"><Search className="w-5 h-5 text-gray-600" /></button>
+          <button onClick={onAddClick} className="bg-gray-900 text-white p-2.5 rounded-full font-bold shadow-sm active:scale-95"><Plus className="w-5 h-5" /></button>
+        </div>
       </div>
-      <div className="relative mb-6">
-        <Search className="w-5 h-5 absolute left-4 top-3.5 text-gray-400" />
-        <input type="text" placeholder="Search 'Bodrum Party' or 'Sunset'..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full bg-white border border-gray-100 rounded-2xl py-3.5 pl-12 pr-4 shadow-sm focus:outline-none focus:ring-2 focus:ring-pink-500 font-medium text-sm" />
-      </div>
+
+      {isSearchOpen && (
+        <div className="relative mb-6 animate-in slide-in-from-top-2">
+          <Search className="w-5 h-5 absolute left-4 top-3.5 text-gray-400" />
+          <input type="text" placeholder="Search destinations or vibes..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full bg-white border border-gray-100 rounded-2xl py-3.5 pl-12 pr-4 shadow-sm focus:outline-none focus:ring-2 focus:ring-gray-900 font-medium text-sm" autoFocus />
+        </div>
+      )}
+
       {isSearching ? (
         <div className="space-y-3">
           <h2 className="text-sm font-bold text-gray-500 mb-2">Search Results</h2>
@@ -274,11 +325,12 @@ function AllPlacesView({ spots, onSelectCity, onSelectSpot, onAddClick, searchQu
               <img src={spot.image} className="w-20 h-20 rounded-xl object-cover shrink-0" />
               <div className="flex-1 overflow-hidden">
                 <h3 className="font-bold text-gray-900 leading-tight truncate">{spot.name}</h3>
-                <p className="text-xs text-pink-500 mt-1 font-bold">{spot.type} • {spot.city}</p>
+                <p className="text-xs text-gray-500 mt-1 font-bold">{spot.type} • {spot.city}</p>
                 {spot.tags && spot.tags.length > 0 && <p className="text-[10px] text-gray-400 mt-1 truncate">{spot.tags.join(', ')}</p>}
               </div>
             </div>
           ))}
+          {filteredSpots.length === 0 && <p className="text-center text-gray-400 text-sm mt-8">No spots found matching your vibe.</p>}
         </div>
       ) : (
         <div className="space-y-3">
@@ -303,7 +355,7 @@ function CityDetailView({ spots, city, onSelectSpot, onBack }) {
   const [filter, setFilter] = useState('All');
   const citySpots = spots.filter(s => s.city === city?.name);
   const filteredSpots = filter === 'All' ? citySpots : citySpots.filter(s => s.type === filter);
-  const types = ['All', 'Restaurant', 'Beach Club', 'Hotel'];
+  const types = ['All', 'Restaurant', 'Cafe', 'Beach Club', 'Hotel'];
 
   return (
     <div className="p-5 max-w-md mx-auto space-y-4 animate-in slide-in-from-right duration-200">
@@ -322,7 +374,7 @@ function CityDetailView({ spots, city, onSelectSpot, onBack }) {
               <h3 className="font-bold text-gray-900 leading-tight">{spot.name}</h3>
               <p className="text-xs text-gray-400 mt-1 font-medium">{spot.type}</p>
             </div>
-            <span className="text-xs font-black text-pink-500 bg-pink-50 px-2 py-1 rounded-lg flex items-center gap-1"><Flame className="w-3 h-3 fill-pink-500" /> {((spot.rating?.food + spot.rating?.service + spot.rating?.vibe)/3).toFixed(1)}</span>
+            <span className="text-xs font-black text-gray-900 bg-gray-100 px-2 py-1 rounded-lg flex items-center gap-1"><Flame className="w-3 h-3 fill-gray-900" /> {((spot.rating?.food + spot.rating?.service + spot.rating?.vibe)/3).toFixed(1)}</span>
           </div>
         ))}
       </div>
@@ -330,39 +382,105 @@ function CityDetailView({ spots, city, onSelectSpot, onBack }) {
   );
 }
 
-// --- 4. ADD A NEW SPOT ---
+// --- 4. ADD A NEW SPOT (UITGEBREID MET NATIVE PHOTO UPLOAD) ---
 function AddSpotView({ onBack, onSave }) {
   const [name, setName] = useState('');
   const [city, setCity] = useState('');
   const [type, setType] = useState('Restaurant');
+  const [cuisine, setCuisine] = useState('');
+  const [imagePreview, setImagePreview] = useState(null);
+  const [selectedTags, setSelectedTags] = useState([]);
+
+  const availableTags = VIBE_TAGS[type] || VIBE_TAGS['Restaurant'];
+
+  const handleImageChange = (e) => {
+    if (e.target.files && e.target.files[0]) {
+      setImagePreview(URL.createObjectURL(e.target.files[0]));
+    }
+  };
+
+  const toggleTag = (tag) => {
+    if (selectedTags.includes(tag)) setSelectedTags(selectedTags.filter(t => t !== tag)); 
+    else setSelectedTags([...selectedTags, tag]);
+  };
   
   const handleSave = () => {
-    onSave({ name, city, type, image: 'https://images.unsplash.com/photo-1514933651103-005eec06c04b?q=80&w=1000', addressUrl: `https://maps.google.com/?q=${name}+${city}`, websiteUrl: 'https://google.com', instagramUrl: 'https://instagram.com', bookingUrl: 'https://opentable.com', tags: [], rating: { food: 5, service: 5, vibe: 5, totalVotes: 1 } });
+    onSave({ 
+      name, city, type, cuisine, 
+      image: imagePreview || 'https://images.unsplash.com/photo-1514933651103-005eec06c04b?q=80&w=1000', 
+      addressUrl: `https://maps.google.com/?q=${name}+${city}`, 
+      websiteUrl: 'https://google.com', instagramUrl: 'https://instagram.com', bookingUrl: 'https://opentable.com', 
+      tags: selectedTags, rating: { food: 5, service: 5, vibe: 5, totalVotes: 1 } 
+    });
   };
 
   return (
-    <div className="p-5 max-w-md mx-auto space-y-6 animate-in slide-in-from-right duration-200">
+    <div className="p-5 max-w-md mx-auto space-y-6 animate-in slide-in-from-right duration-200 pb-32">
       <header className="flex items-center gap-4">
         <button onClick={onBack} className="p-2 bg-white rounded-full border"><ArrowLeft className="w-5 h-5" /></button>
         <h1 className="text-xl font-bold">Add a Spot</h1>
       </header>
-      <div className="space-y-4 bg-white p-6 rounded-3xl border shadow-sm">
-        <div><label className="text-xs font-bold text-gray-500">Spot Name</label><input type="text" value={name} onChange={e=>setName(e.target.value)} className="w-full bg-gray-50 p-3 rounded-xl mt-1 focus:outline-pink-500" /></div>
-        <div><label className="text-xs font-bold text-gray-500">City</label><input type="text" value={city} onChange={e=>setCity(e.target.value)} className="w-full bg-gray-50 p-3 rounded-xl mt-1 focus:outline-pink-500" /></div>
-        <div><label className="text-xs font-bold text-gray-500">Type</label><select value={type} onChange={e=>setType(e.target.value)} className="w-full bg-gray-50 p-3 rounded-xl mt-1 focus:outline-pink-500"><option>Restaurant</option><option>Beach Club</option><option>Hotel</option></select></div>
-        <button onClick={handleSave} className="w-full bg-pink-500 text-white font-bold py-4 rounded-2xl shadow-lg mt-4">Save to Database</button>
+
+      <div className="space-y-5 bg-white p-6 rounded-3xl border shadow-sm">
+        
+        {/* PHOTO UPLOAD (OPENT GALERIJ/CAMERA) */}
+        <div>
+          <label className="text-xs font-bold text-gray-500 block mb-2">Upload Photo</label>
+          <div className="relative h-40 w-full bg-gray-50 border-2 border-dashed border-gray-200 rounded-2xl flex flex-col items-center justify-center overflow-hidden">
+            {imagePreview ? (
+              <img src={imagePreview} className="absolute inset-0 w-full h-full object-cover" />
+            ) : (
+              <div className="text-center text-gray-400">
+                <ImageIcon className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                <span className="text-xs font-bold">Tap to upload</span>
+              </div>
+            )}
+            <input type="file" accept="image/*" onChange={handleImageChange} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
+          </div>
+        </div>
+
+        <div><label className="text-xs font-bold text-gray-500">Spot Name</label><input type="text" value={name} onChange={e=>setName(e.target.value)} className="w-full bg-gray-50 p-3 rounded-xl mt-1 focus:outline-gray-900" /></div>
+        
+        <div><label className="text-xs font-bold text-gray-500">City</label><input type="text" value={city} onChange={e=>setCity(e.target.value)} className="w-full bg-gray-50 p-3 rounded-xl mt-1 focus:outline-gray-900" /></div>
+        
+        <div>
+          <label className="text-xs font-bold text-gray-500">Type</label>
+          <select value={type} onChange={e=>{setType(e.target.value); setSelectedTags([]);}} className="w-full bg-gray-50 p-3 rounded-xl mt-1 focus:outline-gray-900">
+            <option>Restaurant</option>
+            <option>Cafe</option>
+            <option>Lunch</option>
+            <option>Breakfast</option>
+            <option>Beach Club</option>
+            <option>Hotel</option>
+          </select>
+        </div>
+
+        {['Restaurant', 'Cafe', 'Lunch', 'Breakfast'].includes(type) && (
+          <div><label className="text-xs font-bold text-gray-500">Cuisine</label><input type="text" value={cuisine} onChange={e=>setCuisine(e.target.value)} placeholder="e.g. Italian, Fusion..." className="w-full bg-gray-50 p-3 rounded-xl mt-1 focus:outline-gray-900" /></div>
+        )}
+
+        <div>
+          <label className="text-xs font-bold text-gray-500 block mb-2">Vibe Tags</label>
+          <div className="flex flex-wrap gap-2">
+            {availableTags.map(tag => (
+              <button key={tag} onClick={() => toggleTag(tag)} className={`px-3 py-1.5 rounded-xl text-[10px] font-bold border transition-colors ${selectedTags.includes(tag) ? 'bg-gray-900 text-white border-gray-900' : 'bg-white text-gray-600 border-gray-200'}`}>{tag}</button>
+            ))}
+          </div>
+        </div>
+
+        <button onClick={handleSave} className="w-full bg-gray-900 text-white font-bold py-4 rounded-2xl shadow-lg mt-4">Save to Database</button>
       </div>
     </div>
   );
 }
 
-// --- 5. SPOT DETAIL SCREEN ---
+// --- 5. SPOT DETAIL SCHERM ---
 function SpotDetail({ spot, onBack, onRate }) {
   if (!spot) return null;
   const overall = ((spot.rating?.food + spot.rating?.service + spot.rating?.vibe) / 3).toFixed(1);
 
   return (
-    <div className="animate-in slide-in-from-right duration-200">
+    <div className="animate-in slide-in-from-right duration-200 pb-20">
       <div className="relative h-72 w-full">
         <img src={spot.image} className="w-full h-full object-cover" />
         <button onClick={onBack} className="absolute top-12 left-5 p-2 bg-black/30 backdrop-blur-md rounded-full text-white"><ChevronLeft /></button>
@@ -372,26 +490,26 @@ function SpotDetail({ spot, onBack, onRate }) {
             <p className="text-sm font-medium drop-shadow-md flex items-center gap-1 opacity-90"><MapPin className="w-3.5 h-3.5"/> {spot.type} • {spot.city}</p>
           </div>
           <div className="bg-white/20 backdrop-blur-md px-3 py-1.5 rounded-xl border border-white/30 flex items-center gap-1.5 shadow-lg">
-            <Flame className="w-4 h-4 fill-pink-500 text-pink-500" /> <span className="font-black text-lg">{overall}</span>
+            <Flame className="w-4 h-4 fill-white text-white" /> <span className="font-black text-lg">{overall}</span>
           </div>
         </div>
       </div>
 
       <div className="p-5 max-w-md mx-auto space-y-6">
         <div className="grid grid-cols-3 gap-3">
-          <a href={spot.addressUrl} target="_blank" rel="noreferrer" className="flex flex-col items-center justify-center py-3 bg-white rounded-2xl border border-gray-100 shadow-sm hover:bg-gray-50"><MapPin className="w-5 h-5 text-blue-500 mb-1.5" /><span className="text-[10px] font-bold uppercase tracking-wider text-gray-500">Address</span></a>
-          <a href={spot.websiteUrl} target="_blank" rel="noreferrer" className="flex flex-col items-center justify-center py-3 bg-white rounded-2xl border border-gray-100 shadow-sm hover:bg-gray-50"><Globe className="w-5 h-5 text-green-500 mb-1.5" /><span className="text-[10px] font-bold uppercase tracking-wider text-gray-500">Website</span></a>
-          <a href={spot.instagramUrl} target="_blank" rel="noreferrer" className="flex flex-col items-center justify-center py-3 bg-white rounded-2xl border border-gray-100 shadow-sm hover:bg-gray-50"><Instagram className="w-5 h-5 text-pink-500 mb-1.5" /><span className="text-[10px] font-bold uppercase tracking-wider text-gray-500">Instagram</span></a>
+          <a href={spot.addressUrl} target="_blank" rel="noreferrer" className="flex flex-col items-center justify-center py-3 bg-white rounded-2xl border border-gray-100 shadow-sm hover:bg-gray-50"><MapPin className="w-5 h-5 text-gray-700 mb-1.5" /><span className="text-[10px] font-bold uppercase tracking-wider text-gray-500">Address</span></a>
+          <a href={spot.websiteUrl} target="_blank" rel="noreferrer" className="flex flex-col items-center justify-center py-3 bg-white rounded-2xl border border-gray-100 shadow-sm hover:bg-gray-50"><Globe className="w-5 h-5 text-gray-700 mb-1.5" /><span className="text-[10px] font-bold uppercase tracking-wider text-gray-500">Website</span></a>
+          <a href={spot.instagramUrl} target="_blank" rel="noreferrer" className="flex flex-col items-center justify-center py-3 bg-white rounded-2xl border border-gray-100 shadow-sm hover:bg-gray-50"><Instagram className="w-5 h-5 text-gray-700 mb-1.5" /><span className="text-[10px] font-bold uppercase tracking-wider text-gray-500">Instagram</span></a>
         </div>
 
         <div className="grid grid-cols-2 gap-3">
-          <a href={spot.bookingUrl} target="_blank" rel="noreferrer" className="bg-gray-900 text-white font-bold py-3.5 rounded-2xl shadow-md flex items-center justify-center gap-2 text-sm"><CalendarDays className="w-4 h-4"/> Book a Table</a>
-          <button onClick={onRate} className="bg-gradient-to-r from-pink-500 to-rose-500 text-white font-bold py-3.5 rounded-2xl shadow-md shadow-pink-500/30 flex items-center justify-center gap-2 text-sm"><Check className="w-4 h-4"/> Have you been?</button>
+          <a href={spot.bookingUrl} target="_blank" rel="noreferrer" className="bg-gray-900 text-white font-bold py-3.5 rounded-2xl shadow-md flex items-center justify-center gap-2 text-sm"><CalendarDays className="w-4 h-4"/> Book</a>
+          <button onClick={onRate} className="bg-white border border-gray-200 text-gray-900 font-bold py-3.5 rounded-2xl shadow-sm flex items-center justify-center gap-2 text-sm"><Check className="w-4 h-4"/> Have you been?</button>
         </div>
 
         <div className="flex gap-4">
-          <div className="flex-1 bg-white p-3.5 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-3"><div className="bg-pink-50 p-2 rounded-full text-pink-500"><Utensils className="w-4 h-4"/></div><div><p className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Cuisine</p><p className="text-xs font-bold text-gray-900 truncate">{spot.cuisine || 'International'}</p></div></div>
-          <div className="flex-1 bg-white p-3.5 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-3"><div className="bg-blue-50 p-2 rounded-full text-blue-500"><Info className="w-4 h-4"/></div><div><p className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Dress Code</p><p className="text-xs font-bold text-gray-900 truncate">{spot.dresscode || 'Smart Casual'}</p></div></div>
+          <div className="flex-1 bg-white p-3.5 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-3"><div className="bg-gray-50 p-2 rounded-full text-gray-700"><Utensils className="w-4 h-4"/></div><div><p className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Cuisine</p><p className="text-xs font-bold text-gray-900 truncate">{spot.cuisine || 'International'}</p></div></div>
+          <div className="flex-1 bg-white p-3.5 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-3"><div className="bg-gray-50 p-2 rounded-full text-gray-700"><Info className="w-4 h-4"/></div><div><p className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Dress Code</p><p className="text-xs font-bold text-gray-900 truncate">{spot.dresscode || 'Smart Casual'}</p></div></div>
         </div>
 
         {spot.tags && spot.tags.length > 0 && (
@@ -421,7 +539,7 @@ function HaveBeenView({ spot, onBack, onSubmit }) {
     <div className="p-5 max-w-md mx-auto space-y-6 animate-in slide-in-from-bottom duration-200 pb-32">
       <header className="flex items-center gap-4">
         <button onClick={onBack} className="p-2 bg-white rounded-full border"><ArrowLeft className="w-5 h-5" /></button>
-        <div><h1 className="text-xl font-bold tracking-tight">Vibe Check</h1><p className="text-xs text-pink-500 font-bold">{spot?.name}</p></div>
+        <div><h1 className="text-xl font-bold tracking-tight">Vibe Check</h1><p className="text-xs text-gray-500 font-bold">{spot?.name}</p></div>
       </header>
 
       <div className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm space-y-5">
@@ -434,12 +552,12 @@ function HaveBeenView({ spot, onBack, onSubmit }) {
         <h2 className="text-sm font-black text-gray-900 mb-3 uppercase tracking-wider pl-1">What fits the vibe?</h2>
         <div className="flex flex-wrap gap-2">
           {availableTags.map(tag => (
-            <button key={tag} onClick={() => toggleTag(tag)} className={`px-3.5 py-2 rounded-xl text-[11px] font-bold border transition-colors ${selectedTags.includes(tag) ? 'bg-pink-500 text-white border-pink-500 shadow-md shadow-pink-500/20' : 'bg-white text-gray-600 border-gray-200 shadow-sm'}`}>{tag}</button>
+            <button key={tag} onClick={() => toggleTag(tag)} className={`px-3.5 py-2 rounded-xl text-[11px] font-bold border transition-colors ${selectedTags.includes(tag) ? 'bg-gray-900 text-white border-gray-900 shadow-md' : 'bg-white text-gray-600 border-gray-200 shadow-sm'}`}>{tag}</button>
           ))}
         </div>
       </div>
 
-      <button onClick={() => onSubmit({ food, service, vibe }, selectedTags)} disabled={!food || !service || !vibe} className={`w-full py-4 rounded-2xl font-black text-white text-center shadow-lg transition-all flex items-center justify-center gap-2 mt-4 ${food && service && vibe ? 'bg-gradient-to-r from-pink-500 to-rose-500 shadow-pink-500/30' : 'bg-gray-300'}`}>Submit Vibe Check 🔥</button>
+      <button onClick={() => onSubmit({ food, service, vibe }, selectedTags)} disabled={!food || !service || !vibe} className={`w-full py-4 rounded-2xl font-black text-white text-center shadow-lg transition-all flex items-center justify-center gap-2 mt-4 ${food && service && vibe ? 'bg-gray-900 active:scale-95' : 'bg-gray-300'}`}>Submit Vibe Check</button>
     </div>
   );
 }
@@ -450,7 +568,7 @@ function SavedView({ lists, onCreateClick, onOpenList }) {
     <div className="p-5 max-w-md mx-auto space-y-4 animate-in fade-in duration-200">
       <div className="flex justify-between items-center mb-4">
         <h1 className="text-2xl font-black text-gray-900 tracking-tight">My Lists</h1>
-        <button onClick={onCreateClick} className="bg-pink-50 text-pink-500 p-2.5 rounded-full font-bold shadow-sm active:scale-95"><Plus className="w-5 h-5" /></button>
+        <button onClick={onCreateClick} className="bg-white border border-gray-200 text-gray-900 p-2.5 rounded-full font-bold shadow-sm active:scale-95"><Plus className="w-5 h-5" /></button>
       </div>
 
       <div className="grid grid-cols-2 gap-4">
@@ -460,7 +578,7 @@ function SavedView({ lists, onCreateClick, onOpenList }) {
             <div className="absolute inset-0 bg-gradient-to-t from-gray-900/80 to-transparent"></div>
             <div className="absolute bottom-4 left-4 right-4 text-white">
               <h2 className="text-sm font-bold leading-tight">{list.name}</h2>
-              <p className="text-[10px] font-medium text-pink-300 mt-1">{list.spots.length} spots</p>
+              <p className="text-[10px] font-medium text-gray-300 mt-1">{list.spots.length} spots</p>
             </div>
           </div>
         ))}
@@ -470,38 +588,58 @@ function SavedView({ lists, onCreateClick, onOpenList }) {
   );
 }
 
-// --- 8. CREATE LIST VIEW (WITH TRIP DATES INPUT) ---
+// --- 8. CREATE LIST VIEW (NATIVE FILE UPLOAD) ---
 function CreateListView({ onBack, onSave }) {
   const [name, setName] = useState('');
-  const [coverImage, setCoverImage] = useState('');
   const [tripDates, setTripDates] = useState('');
+  const [imagePreview, setImagePreview] = useState(null);
+
+  const handleImageChange = (e) => {
+    if (e.target.files && e.target.files[0]) {
+      setImagePreview(URL.createObjectURL(e.target.files[0]));
+    }
+  };
 
   return (
-    <div className="p-5 max-w-md mx-auto space-y-6 animate-in slide-in-from-bottom duration-200">
+    <div className="p-5 max-w-md mx-auto space-y-6 animate-in slide-in-from-bottom duration-200 pb-32">
       <header className="flex items-center gap-4">
         <button onClick={onBack} className="p-2 bg-white rounded-full border"><ArrowLeft className="w-5 h-5" /></button>
         <h1 className="text-xl font-bold">New List</h1>
       </header>
       <div className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm space-y-4">
+        
+        {/* NATIVE PHOTO UPLOAD (GALLERY/CAMERA) */}
+        <div>
+          <label className="text-xs font-bold text-gray-500 block mb-2">Cover Photo</label>
+          <div className="relative h-32 w-full bg-gray-50 border-2 border-dashed border-gray-200 rounded-2xl flex flex-col items-center justify-center overflow-hidden">
+            {imagePreview ? (
+              <img src={imagePreview} className="absolute inset-0 w-full h-full object-cover" />
+            ) : (
+              <div className="text-center text-gray-400">
+                <ImageIcon className="w-6 h-6 mx-auto mb-2 opacity-50" />
+                <span className="text-xs font-bold">Tap to upload</span>
+              </div>
+            )}
+            <input type="file" accept="image/*" onChange={handleImageChange} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
+          </div>
+        </div>
+
         <div>
           <label className="text-xs font-bold text-gray-500">List Name</label>
-          <input type="text" value={name} onChange={e=>setName(e.target.value)} className="w-full bg-gray-50 p-3 rounded-xl mt-1 focus:outline-pink-500" placeholder="e.g. Ibiza Opening Week 🌸" />
+          <input type="text" value={name} onChange={e=>setName(e.target.value)} className="w-full bg-gray-50 p-3 rounded-xl mt-1 focus:outline-gray-900" placeholder="e.g. Ibiza Opening Week" />
         </div>
         <div>
           <label className="text-xs font-bold text-gray-500">Trip Dates</label>
-          <input type="text" value={tripDates} onChange={e=>setTripDates(e.target.value)} className="w-full bg-gray-50 p-3 rounded-xl mt-1 focus:outline-pink-500" placeholder="e.g. 12 July - 19 July 2026" />
+          <input type="text" value={tripDates} onChange={e=>setTripDates(e.target.value)} className="w-full bg-gray-50 p-3 rounded-xl mt-1 focus:outline-gray-900" placeholder="e.g. 12 July - 19 July 2026" />
         </div>
-        <div>
-          <label className="text-xs font-bold text-gray-500">Cover Image URL</label>
-          <input type="text" value={coverImage} onChange={e=>setCoverImage(e.target.value)} className="w-full bg-gray-50 p-3 rounded-xl mt-1 focus:outline-pink-500" placeholder="https://images.unsplash.com/..." />
-        </div>
-        <button onClick={() => name && onSave(name, coverImage, tripDates)} className="w-full bg-pink-500 text-white font-bold py-4 rounded-2xl shadow-lg mt-4">Create List</button>
+        
+        <button onClick={() => name && onSave(name, imagePreview, tripDates)} className="w-full bg-gray-900 text-white font-bold py-4 rounded-2xl shadow-lg mt-4">Create List</button>
       </div>
     </div>
   );
 }
 
-// --- 9. LIST DETAIL VIEW (DATES & NOTES WORK LIVE) ---
+// --- 9. LIST DETAIL VIEW ---
 function ListDetailView({ list, allSpots, onBack, onSelectSpot, onUpdateNotes, onUpdateDates }) {
   if (!list) return null;
   const listSpots = allSpots.filter(s => list.spots.includes(s.id));
@@ -509,12 +647,12 @@ function ListDetailView({ list, allSpots, onBack, onSelectSpot, onUpdateNotes, o
   const [dates, setDates] = useState(list.dates || '');
 
   const shareList = () => {
-    const text = `Check out my LocaVibes list: ${list.name}! Trip Dates: ${dates}. Spots: ${listSpots.map(s => s.name).join(', ')}`;
+    const text = `Check out my LOQA list: ${list.name}! Trip Dates: ${dates}. Spots: ${listSpots.map(s => s.name).join(', ')}`;
     window.location.href = `whatsapp://send?text=${encodeURIComponent(text)}`;
   };
 
   return (
-    <div className="animate-in slide-in-from-right duration-200">
+    <div className="animate-in slide-in-from-right duration-200 pb-20">
       <div className="relative h-64 w-full">
         <img src={list.coverImage} className="w-full h-full object-cover" alt="" />
         <div className="absolute inset-0 bg-black/30"></div>
@@ -526,31 +664,29 @@ function ListDetailView({ list, allSpots, onBack, onSelectSpot, onUpdateNotes, o
       </div>
 
       <div className="p-5 max-w-md mx-auto space-y-6">
-        <button onClick={shareList} className="w-full bg-[#25D366] text-white font-bold py-3.5 rounded-2xl shadow-md flex items-center justify-center gap-2 active:scale-95">
-          <Share2 className="w-5 h-5"/> Share via WhatsApp
+        <button onClick={shareList} className="w-full bg-white border border-gray-200 text-gray-900 font-bold py-3.5 rounded-2xl shadow-sm flex items-center justify-center gap-2 active:scale-95">
+          <Share2 className="w-5 h-5"/> Share List
         </button>
 
-        {/* TRIP DATES SECTION */}
         <div>
-          <h2 className="text-sm font-black text-gray-900 mb-2 uppercase tracking-wider flex items-center gap-2"><Calendar className="w-4 h-4 text-pink-500"/> Trip Dates</h2>
+          <h2 className="text-sm font-black text-gray-900 mb-2 uppercase tracking-wider flex items-center gap-2"><Calendar className="w-4 h-4 text-gray-900"/> Trip Dates</h2>
           <input 
             type="text"
             value={dates}
             onChange={(e) => setDates(e.target.value)}
             onBlur={() => onUpdateDates(list.id, dates)}
-            className="w-full bg-white border border-gray-200 rounded-2xl p-4 text-sm text-gray-700 font-bold focus:outline-pink-500 shadow-sm"
+            className="w-full bg-white border border-gray-200 rounded-2xl p-4 text-sm text-gray-700 font-bold focus:outline-gray-900 shadow-sm"
             placeholder="Set trip dates..."
           />
         </div>
 
-        {/* NOTES SECTION */}
         <div>
-          <h2 className="text-sm font-black text-gray-900 mb-2 uppercase tracking-wider flex items-center gap-2"><Edit3 className="w-4 h-4 text-pink-500"/> Trip Notes</h2>
+          <h2 className="text-sm font-black text-gray-900 mb-2 uppercase tracking-wider flex items-center gap-2"><Edit3 className="w-4 h-4 text-gray-900"/> Trip Notes</h2>
           <textarea 
             value={notes} 
             onChange={(e) => setNotes(e.target.value)}
             onBlur={() => onUpdateNotes(list.id, notes)}
-            className="w-full bg-white border border-gray-200 rounded-2xl p-4 text-sm text-gray-700 min-h-[120px] focus:outline-pink-500 shadow-sm"
+            className="w-full bg-white border border-gray-200 rounded-2xl p-4 text-sm text-gray-700 min-h-[120px] focus:outline-gray-900 shadow-sm"
             placeholder="Type notes, budgets or booking references here..."
           />
         </div>
@@ -581,14 +717,14 @@ function ProfileView({ isLive, listsCount }) {
   return (
     <div className="p-5 max-w-md mx-auto pt-16 space-y-6 animate-in fade-in duration-200">
       <div className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm text-center relative overflow-hidden">
-        <div className="absolute top-0 left-0 right-0 h-24 bg-gradient-to-r from-pink-400 to-rose-400"></div>
+        <div className="absolute top-0 left-0 right-0 h-24 bg-gray-900"></div>
         <div className="relative mt-8">
           <div className="w-24 h-24 rounded-full overflow-hidden mx-auto border-4 border-white shadow-lg bg-white">
             <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=200" className="w-full h-full object-cover" alt="" />
           </div>
           <h1 className="text-xl font-black text-gray-900 mt-3">Sophie L.</h1>
-          <p className="text-xs text-pink-500 font-bold">@sophie_vibes</p>
-          <p className="text-sm text-gray-500 font-medium mt-2">Chasing aesthetic sunsets & best tables around the globe. 🌍🥂</p>
+          <p className="text-xs text-gray-500 font-bold">@sophie_vibes</p>
+          <p className="text-sm text-gray-500 font-medium mt-2">Curating aesthetics and discovering the best spots.</p>
         </div>
 
         <div className="grid grid-cols-2 gap-4 mt-6 pt-6 border-t border-gray-100">
@@ -612,15 +748,15 @@ function ProfileView({ isLive, listsCount }) {
         </div>
 
         <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm flex items-center gap-4 cursor-pointer hover:bg-gray-50">
-          <div className="bg-blue-50 p-2 rounded-full text-blue-500"><Grid className="w-5 h-5"/></div>
+          <div className="bg-gray-100 p-2 rounded-full text-gray-600"><Grid className="w-5 h-5"/></div>
           <div className="flex-1"><h3 className="font-bold text-sm text-gray-900">Connect Instagram</h3><p className="text-[10px] text-gray-400">Import your saved places</p></div>
         </div>
 
         <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm flex items-center gap-4">
-          <div className={`p-2 rounded-full ${isLive ? 'bg-green-50 text-green-500' : 'bg-red-50 text-red-500'}`}><ShieldAlert className="w-5 h-5"/></div>
+          <div className={`p-2 rounded-full ${isLive ? 'bg-gray-100 text-gray-900' : 'bg-red-50 text-red-500'}`}><ShieldAlert className="w-5 h-5"/></div>
           <div className="flex-1">
             <h3 className="font-bold text-sm text-gray-900">Database Connection</h3>
-            <p className="text-[10px] text-gray-400">{isLive ? 'Connected to live Firebase kluis' : 'Offline backup mode'}</p>
+            <p className="text-[10px] text-gray-400">{isLive ? 'Connected to live Firebase' : 'Offline backup mode'}</p>
           </div>
         </div>
 
