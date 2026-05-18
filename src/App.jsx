@@ -24,7 +24,8 @@ const MOCK_CITIES = [
 ];
 
 const BACKUP_SPOTS = [
-  { id: 'spot_1', name: 'Casa Blanca', subtitle: 'Bodrum, Turkey', city: 'Bodrum', type: 'Restaurant', cuisine: 'Mediterranean Fusion', dresscode: 'Smart Casual', image: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?q=80&w=1000', addressUrl: 'https://maps.google.com/?q=Casa+Blanca+Bodrum', websiteUrl: 'https://google.com', instagramUrl: 'https://instagram.com', bookingUrl: 'https://opentable.com', rating: { food: 4.5, service: 4.0, vibe: 4.5, totalVotes: 1 }, photos: { view: [], table: [], food: [] }, tags: ['Instagrammable', 'Sunset view'] }
+  { id: 'spot_1', name: 'Casa Blanca', subtitle: 'Bodrum, Turkey', city: 'Bodrum', type: 'Restaurant', cuisine: 'Mediterranean Fusion', dresscode: 'Smart Casual', image: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?q=80&w=1000', addressUrl: 'https://maps.google.com/?q=Casa+Blanca+Bodrum', websiteUrl: 'https://google.com', instagramUrl: 'https://instagram.com', bookingUrl: 'https://opentable.com', rating: { food: 4.5, service: 4.0, vibe: 4.5, totalVotes: 1 }, photos: { view: [], table: [], food: [] }, tags: ['Instagrammable', 'Sunset view'] },
+  { id: 'spot_2', name: 'Lumière', subtitle: 'Cannes, France', city: 'Cannes', type: 'Restaurant', cuisine: 'French', dresscode: 'Elegant', image: 'https://images.unsplash.com/photo-1582650570392-809ab43f0be7?q=80&w=1000', addressUrl: 'https://maps.google.com/?q=Casa+Blanca+Bodrum', websiteUrl: 'https://google.com', instagramUrl: 'https://instagram.com', bookingUrl: 'https://opentable.com', rating: { food: 4.8, service: 4.6, vibe: 4.9, totalVotes: 1 }, photos: { view: [], table: [], food: [] }, tags: ['Luxury', 'Fine dining'] }
 ];
 
 export default function LocaVibesApp() {
@@ -146,27 +147,106 @@ function FlameRating({ value, onChange }) {
   );
 }
 
-// --- 1. HOME FEED ---
+// --- 1. HOME FEED (HET NIEUWE DESIGN!) ---
 function HomeFeed({ spots, onSelectSpot }) {
+  // Bereken de Top 10 Restaurants op basis van het gemiddelde (Highest Scores)
+  const top10 = [...spots]
+    .filter(s => s.type === 'Restaurant')
+    .sort((a, b) => {
+      const scoreA = ((a.rating?.food || 0) + (a.rating?.service || 0) + (a.rating?.vibe || 0)) / 3;
+      const scoreB = ((b.rating?.food || 0) + (b.rating?.service || 0) + (b.rating?.vibe || 0)) / 3;
+      return scoreB - scoreA;
+    })
+    .slice(0, 10);
+
+  // Tijdelijke mock-data voor Just Opened
+  const JUST_OPENED = [
+    { id: 'jo1', name: 'Gigi Rigolatto', city: 'Dubai', type: 'Restaurant', image: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?q=80&w=500' },
+    { id: 'jo2', name: 'Zuma Beachhouse', city: 'Ibiza', type: 'Beach Club', image: 'https://images.unsplash.com/photo-1544227673-3112b3221b79?q=80&w=500' }
+  ];
+
+  // Tijdelijke mock-data voor Soon To Open
+  const SOON_TO_OPEN = [
+    { id: 'sto1', name: 'Scorpios', city: 'Bodrum', expected: 'June 2026', image: 'https://images.unsplash.com/photo-1515238152791-8225bf064fe5?q=80&w=500' },
+    { id: 'sto2', name: 'Lucia', city: 'Cannes', expected: 'Summer 2026', image: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=500' }
+  ];
+
   return (
-    <div className="p-5 max-w-md mx-auto space-y-4 animate-in fade-in duration-200">
-      <h1 className="text-2xl font-black text-pink-500 tracking-tighter mb-4">LocaVibes.</h1>
-      <div className="space-y-4">
-        {spots.map(spot => (
-          <div key={spot.id} onClick={() => onSelectSpot(spot.id)} className="bg-white rounded-[2rem] overflow-hidden shadow-md border border-gray-100 cursor-pointer group">
-            <img src={spot.image} className="h-48 w-full object-cover group-active:scale-105 transition-transform" />
-            <div className="p-4 flex justify-between items-center">
-              <div>
-                <h3 className="font-bold text-gray-900 leading-tight">{spot.name}</h3>
-                <p className="text-xs text-gray-400 flex items-center gap-1 mt-1 font-medium"><MapPin className="w-3 h-3" /> {spot.city}</p>
-              </div>
-              <span className="bg-gradient-to-r from-pink-500 to-rose-500 text-white px-3 py-1.5 rounded-xl text-xs font-black flex items-center gap-1 shadow-sm">
-                <Flame className="w-3.5 h-3.5 fill-white" /> {((spot.rating?.food + spot.rating?.service + spot.rating?.vibe)/3).toFixed(1)}
-              </span>
-            </div>
-          </div>
-        ))}
+    <div className="pb-8 animate-in fade-in duration-200">
+      
+      <div className="px-5 pt-10 mb-6">
+        <h1 className="text-3xl font-black text-pink-500 tracking-tighter">LocaVibes.</h1>
+        <p className="text-gray-400 text-sm font-medium mt-1">Curated aesthetics around the globe.</p>
       </div>
+
+      {/* TOP 10 HORIZONTAL SWIPER */}
+      <div className="pl-5 mb-10">
+        <h2 className="text-xl font-black text-gray-900 mb-4 tracking-tight flex items-center gap-2">Global Top 10 🏆</h2>
+        <div className="flex gap-4 overflow-x-auto no-scrollbar pr-5 pb-4 snap-x snap-mandatory">
+          {top10.map((spot, index) => {
+            const score = ((spot.rating?.food + spot.rating?.service + spot.rating?.vibe)/3).toFixed(1);
+            return (
+              <div key={spot.id} onClick={() => onSelectSpot(spot.id)} className="snap-start relative min-w-[260px] h-[320px] bg-white rounded-3xl overflow-hidden shadow-lg shadow-gray-200/50 cursor-pointer group shrink-0 active:scale-95 transition-transform">
+                <img src={spot.image} className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
+                <div className="absolute inset-0 bg-gradient-to-t from-gray-900/90 via-gray-900/20 to-transparent"></div>
+                
+                {/* Ranking Badge */}
+                <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-md text-gray-900 w-10 h-10 rounded-full flex items-center justify-center font-black shadow-lg text-lg">
+                  #{index + 1}
+                </div>
+                
+                <div className="absolute bottom-5 left-5 right-5 text-white">
+                  <h3 className="font-black text-2xl leading-tight mb-1">{spot.name}</h3>
+                  <p className="text-xs font-bold opacity-80 flex items-center gap-1 mb-3"><MapPin className="w-3.5 h-3.5" /> {spot.city}</p>
+                  <div className="inline-flex bg-gradient-to-r from-pink-500 to-rose-500 backdrop-blur px-3 py-1.5 rounded-xl items-center gap-1.5 shadow-md">
+                    <Flame className="w-4 h-4 fill-white text-white" />
+                    <span className="text-sm font-black">{score}</span>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+          {top10.length === 0 && <p className="text-sm text-gray-400">No restaurants scored yet.</p>}
+        </div>
+      </div>
+
+      {/* JUST OPENED (VERTICAL) */}
+      <div className="px-5 mb-10">
+        <h2 className="text-xl font-black text-gray-900 mb-4 tracking-tight">Just Opened ✨</h2>
+        <div className="space-y-4">
+          {JUST_OPENED.map(spot => (
+            <div key={spot.id} className="bg-white rounded-2xl p-3 flex items-center gap-4 shadow-sm border border-gray-100 cursor-pointer">
+              <img src={spot.image} className="w-20 h-20 rounded-xl object-cover shrink-0" />
+              <div className="flex-1">
+                <h3 className="font-bold text-gray-900 leading-tight">{spot.name}</h3>
+                <p className="text-xs text-pink-500 font-bold mt-0.5">{spot.type}</p>
+                <p className="text-[10px] text-gray-400 font-medium flex items-center gap-1 mt-1"><MapPin className="w-3 h-3"/> {spot.city}</p>
+              </div>
+              <div className="bg-pink-50 text-pink-500 px-3 py-1.5 rounded-xl text-xs font-bold uppercase tracking-wider">New</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* SOON TO OPEN (VERTICAL) */}
+      <div className="px-5">
+        <h2 className="text-xl font-black text-gray-900 mb-4 tracking-tight">Soon To Open 🚧</h2>
+        <div className="space-y-4">
+          {SOON_TO_OPEN.map(spot => (
+            <div key={spot.id} className="bg-gray-50 rounded-2xl p-3 flex items-center gap-4 border border-gray-100 cursor-pointer opacity-80">
+              <img src={spot.image} className="w-20 h-20 rounded-xl object-cover shrink-0 grayscale-[40%]" />
+              <div className="flex-1">
+                <h3 className="font-bold text-gray-900 leading-tight">{spot.name}</h3>
+                <p className="text-[10px] text-gray-400 font-medium flex items-center gap-1 mt-1"><MapPin className="w-3 h-3"/> {spot.city}</p>
+              </div>
+              <div className="bg-gray-200 text-gray-600 px-3 py-1.5 rounded-xl text-[10px] font-bold text-center w-24">
+                Expected:<br/>{spot.expected}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
     </div>
   );
 }
@@ -400,7 +480,7 @@ function SpotDetail({ spot, onBack, onRate, onNewPhoto }) {
           </div>
         )}
 
-        {/* VISUAL INTELLIGENCE (NU MET USERNAME BIJ FOTO'S) */}
+        {/* VISUAL INTELLIGENCE */}
         <div className="space-y-4 pt-4 border-t border-gray-100">
           <h2 className="text-lg font-black text-gray-900 tracking-tight">Visual Intelligence</h2>
           <div className="flex bg-gray-100/60 p-1 rounded-xl text-xs font-bold text-gray-500">
