@@ -48,23 +48,34 @@ export default function App() {
   );
 }
 
+function SpotCard({ spot, onClick }) {
+  return (
+    <div onClick={() => onClick(spot)} className="min-w-[140px] bg-white p-2 rounded-2xl border shadow-sm cursor-pointer">
+      <div className="h-32 bg-gray-100 rounded-lg mb-2 overflow-hidden">
+        {spot.image && <img src={spot.image} className="w-full h-full object-cover" alt={spot.name} />}
+      </div>
+      <p className="font-bold text-sm truncate">{spot.name}</p>
+      <p className="text-[10px] text-gray-500">{spot.type}</p>
+    </div>
+  );
+}
+
 function HomeView({ spots, onSelect }) {
   const top10 = [...spots].sort((a,b) => (b.rating || 0) - (a.rating || 0)).slice(0,10);
   return (
     <div className="p-5">
       <h1 className="text-3xl font-black text-black mb-6">LOQA</h1>
-      <Section title="Top 10 Global" spots={top10} onSelect={onSelect} />
-      <Section title="Just Opened" spots={spots.filter(s => s.status === 'just_opened')} onSelect={onSelect} />
-    </div>
-  );
-}
-
-function Section({ title, spots, onSelect }) {
-  return (
-    <div className="mb-8">
-      <h2 className="text-xl font-bold mb-4">{title}</h2>
-      <div className="flex gap-4 overflow-x-auto pb-2">
-        {spots.map(s => <div key={s.id} onClick={() => onSelect(s)} className="min-w-[140px] bg-white p-2 rounded-2xl border shadow-sm cursor-pointer"><p className="font-bold text-sm truncate">{s.name}</p></div>)}
+      <div className="mb-8">
+        <h2 className="text-xl font-bold mb-4">Top 10 Global</h2>
+        <div className="flex gap-4 overflow-x-auto pb-2">
+            {top10.map(s => <SpotCard key={s.id} spot={s} onClick={onSelect} />)}
+        </div>
+      </div>
+      <div className="mb-8">
+        <h2 className="text-xl font-bold mb-4">Just Opened</h2>
+        <div className="flex gap-4 overflow-x-auto pb-2">
+            {spots.filter(s => s.status === 'just_opened').map(s => <SpotCard key={s.id} spot={s} onClick={onSelect} />)}
+        </div>
       </div>
     </div>
   );
@@ -95,8 +106,8 @@ function CitySpotsView({ spots, city, onSelect, onBack }) {
     <div className="p-5">
       <button onClick={onBack} className="mb-4"><ArrowLeft /></button>
       <h2 className="text-2xl font-black mb-4">{city}</h2>
-      <div className="grid grid-cols-1 gap-2">
-        {filtered.map(s => <div key={s.id} onClick={() => onSelect(s)} className="p-4 bg-white rounded-xl font-bold cursor-pointer">{s.name}</div>)}
+      <div className="grid grid-cols-2 gap-4">
+        {filtered.map(s => <SpotCard key={s.id} spot={s} onClick={onSelect} />)}
       </div>
     </div>
   );
@@ -107,6 +118,9 @@ function DetailView({ spot, onBack }) {
     <div className="p-5">
       <button onClick={onBack} className="mb-4 bg-white p-2 rounded-full"><ChevronLeft /></button>
       <div className="bg-white rounded-3xl p-6 shadow-xl">
+        <div className="h-64 bg-gray-200 rounded-2xl mb-4 overflow-hidden">
+            {spot.image && <img src={spot.image} className="w-full h-full object-cover" alt={spot.name} />}
+        </div>
         <h1 className="text-3xl font-black">{spot.name}</h1>
         <p className="font-bold mb-4">{spot.city} • {spot.type}</p>
         <p className="text-sm font-bold mt-4">Toegepaste filters:</p>
