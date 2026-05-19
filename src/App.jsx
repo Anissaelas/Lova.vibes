@@ -238,43 +238,50 @@ function CityDetailView({ spots, city, onSelect, onBack }) {
                 ))}
             </div>
 
-            {/* List Layout met Linkjes */}
+            {/* List Layout met Vergevingsgezinde Linkjes */}
             <div className="space-y-4">
-                {filteredSpots.map(s => (
-                    <div key={s.id} onClick={() => onSelect(s)} className="bg-white p-3 rounded-2xl shadow-sm border border-pink-50 flex items-center gap-4 cursor-pointer hover:shadow-md transition-shadow">
-                        <div className="w-20 h-20 rounded-xl overflow-hidden shrink-0">
-                            <img src={s.image || 'https://via.placeholder.com/150'} className="w-full h-full object-cover" alt={s.name} />
-                        </div>
-                        
-                        <div className="flex-1 min-w-0">
-                            <h3 className="font-bold text-gray-900 truncate">{s.name}</h3>
-                            <p className="text-xs text-gray-500 font-semibold mb-2">{s.type}</p>
+                {filteredSpots.map(s => {
+                    // SLIMME CHECK: Zoek naar verschillende schrijfwijzen in jouw Firebase
+                    const insta = s.instagramUrl || s.instagram || s.Instagram;
+                    const web = s.websiteUrl || s.website || s.Website || s.url;
+                    const map = s.addressUrl || s.address || s.Location || s.locatie;
+
+                    return (
+                        <div key={s.id} onClick={() => onSelect(s)} className="bg-white p-3 rounded-2xl shadow-sm border border-pink-50 flex items-center gap-4 cursor-pointer hover:shadow-md transition-shadow">
+                            <div className="w-20 h-20 rounded-xl overflow-hidden shrink-0">
+                                <img src={s.image || 'https://via.placeholder.com/150'} className="w-full h-full object-cover" alt={s.name} />
+                            </div>
                             
-                            {/* De nieuwe snelle linkjes */}
-                            <div className="flex gap-2">
-                                {s.instagramUrl && (
-                                    <a href={s.instagramUrl} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="bg-pink-50 text-[#FF1493] px-2 py-1 rounded text-[10px] font-bold hover:bg-pink-100">
-                                        IG
-                                    </a>
-                                )}
-                                {s.websiteUrl && (
-                                    <a href={s.websiteUrl} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="bg-gray-100 text-gray-600 px-2 py-1 rounded text-[10px] font-bold hover:bg-gray-200">
-                                        WEB
-                                    </a>
-                                )}
-                                {s.addressUrl && (
-                                    <a href={s.addressUrl} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="bg-gray-100 text-gray-600 px-2 py-1 rounded text-[10px] font-bold hover:bg-gray-200">
-                                        MAP
-                                    </a>
-                                )}
+                            <div className="flex-1 min-w-0">
+                                <h3 className="font-bold text-gray-900 truncate">{s.name}</h3>
+                                <p className="text-xs text-gray-500 font-semibold mb-2">{s.type}</p>
+                                
+                                {/* Linkjes */}
+                                <div className="flex gap-2">
+                                    {insta && (
+                                        <a href={insta} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="bg-pink-50 text-[#FF1493] px-2 py-1 rounded text-[10px] font-bold hover:bg-pink-100">
+                                            IG
+                                        </a>
+                                    )}
+                                    {web && (
+                                        <a href={web} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="bg-gray-100 text-gray-600 px-2 py-1 rounded text-[10px] font-bold hover:bg-gray-200">
+                                            WEB
+                                        </a>
+                                    )}
+                                    {map && (
+                                        <a href={map} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="bg-gray-100 text-gray-600 px-2 py-1 rounded text-[10px] font-bold hover:bg-gray-200">
+                                            MAP
+                                        </a>
+                                    )}
+                                </div>
+                            </div>
+                            
+                            <div className="bg-pink-50 p-2 rounded-full text-[#FF1493] shrink-0">
+                                <Flame size={16} className="fill-current" />
                             </div>
                         </div>
-                        
-                        <div className="bg-pink-50 p-2 rounded-full text-[#FF1493] shrink-0">
-                            <Flame size={16} className="fill-current" />
-                        </div>
-                    </div>
-                ))}
+                    );
+                })}
             </div>
         </div>
     );
