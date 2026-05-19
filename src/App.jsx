@@ -60,7 +60,7 @@ export default function App() {
             {view === 'city_spots' && <CityDetailView spots={spots} city={activeCity} onSelect={(s) => { setActiveSpot(s); setView('detail'); }} onBack={() => setView('all')} />}
             {view === 'detail' && <SpotDetailView spot={activeSpot} onBack={() => setView('home')} onReview={() => setView('review')} />}
             {view === 'review' && <ReviewSubmissionView spot={activeSpot} onBack={() => setView('detail')} onDone={() => { fetchSpots(); setView('detail'); }} />}
-            {view === 'saved' && <div className="p-10 text-center font-bold">My Lists (In opbouw)</div>}
+            {view === 'saved' && <MyListsView user={user} spots={spots} />}
             {view === 'profile' && <ProfileView onRefresh={fetchSpots} />}
 
             {/* BOTTOM NAVIGATION */}
