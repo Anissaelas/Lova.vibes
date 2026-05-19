@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { Compass, LayoutGrid, Heart, User, MapPin } from 'lucide-react';
+import { Compass, LayoutGrid, Heart, User, MapPin, Flame, ChevronLeft } from 'lucide-react';
 import { db, auth } from './firebase';
-import { collection, getDocs, setDoc, doc } from 'firebase/firestore';
-import { onAuthStateChanged } from 'firebase/auth';
+import { collection, getDocs } from 'firebase/firestore';
+import { onAuthStateChanged, signOut } from 'firebase/auth';
 
 export default function App() {
   const [user, setUser] = useState(null);
   const [spots, setSpots] = useState([]);
-  const [activeView, setActiveView] = useState('home');
+  const [currentView, setCurrentView] = useState('home');
+  const [activeSpot, setActiveSpot] = useState(null);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (u) => {
@@ -22,46 +23,22 @@ export default function App() {
     setSpots(snapshot.docs.map(d => ({ id: d.id, ...d.data() })));
   };
 
-  const handleFileUpload = async (e) => {
-    const file = e.target.files[0];
-    const reader = new FileReader();
-    reader.onload = async (event) => {
-      const text = event.target.result;
-      const rows = text.split('\n');
-      const headers = rows[0].split(';').map(h => h.trim().toLowerCase());
-      
-      for (let i = 1; i < rows.length; i++) {
-        const values = rows[i].split(';');
-        if (values.length < 2) continue;
-        
-        const spot = {};
-        headers.forEach((h, idx) => spot[h] = values[idx]?.trim());
-        
-        // Zorg dat status wordt ingevuld
-        const status = spot.status ? spot.status.toLowerCase().replace(' ', '_') : 'live';
-        await setDoc(doc(db, "spots", spot.name || i.toString()), { ...spot, status });
-      }
-      fetchSpots();
-      alert("Import voltooid!");
-    };
-    reader.readAsText(file);
-  };
+  if (!user) return <div className="p-10 text-center">Log in via de Auth module.</div>;
 
   return (
-    <div className="min-h-screen bg-[#FFFEE0] pb-24">
-      {/* HOME FEED MET SECTIES */}
-      {activeView === 'home' && (
+    <div className="min-h-screen bg-[#FFFEE0] pb-24 font-sans">
+      {currentView === 'home' && (
         <div className="p-5">
-          <h1 className="text-3xl font-black mb-6">LOQA.</h1>
+          <h1 className="text-3xl font-black text-[#FF1493] mb-8">LOQA.</h1>
           
           {/* JUST OPENED */}
           <section className="mb-8">
             <h2 className="text-xl font-bold mb-4">Just Opened 🔥</h2>
             <div className="flex gap-4 overflow-x-auto pb-2">
-              {spots.filter(s => s.status?.includes('just_opened')).map(s => (
-                <div key={s.id} className="min-w-[140px] bg-white p-2 rounded-xl shadow-sm">
-                  <div className="h-32 bg-gray-200 rounded-lg mb-2" />
-                  <p className="font-bold text-sm">{s.name}</p>
+              {spots.filter(s => s.status === 'just_opened').map(s => (
+                <div key={s.id} onClick={() => { setActiveSpot(s); setCurrentView('detail'); }} className="min-w-[140px] bg-white p-2 rounded-2xl shadow-sm">
+                  <div className="h-32 bg-gray-200 rounded-lg mb-2 overflow-hidden"><img src={s.image} className="w-full h-full object-cover"/></div>
+                  <p className="font-bold text-sm truncate">{s.name}</p>
                 </div>
               ))}
             </div>
@@ -71,10 +48,10 @@ export default function App() {
           <section>
             <h2 className="text-xl font-bold mb-4">Coming Soon ⏳</h2>
             <div className="flex gap-4 overflow-x-auto pb-2">
-              {spots.filter(s => s.status?.includes('coming_soon')).map(s => (
-                <div key={s.id} className="min-w-[140px] bg-gray-100 p-2 rounded-xl opacity-70">
-                  <div className="h-32 bg-gray-300 rounded-lg mb-2" />
-                  <p className="font-bold text-sm">{s.name}</p>
+              {spots.filter(s => s.status === 'coming_soon').map(s => (
+                <div key={s.id} onClick={() => { setActiveSpot(s); setCurrentView('detail'); }} className="min-w-[140px] bg-gray-100 p-2 rounded-2xl opacity-70">
+                  <div className="h-32 bg-gray-300 rounded-lg mb-2 overflow-hidden"><img src={s.image} className="w-full h-full object-cover grayscale"/></div>
+                  <p className="font-bold text-sm truncate">{s.name}</p>
                 </div>
               ))}
             </div>
@@ -82,18 +59,22 @@ export default function App() {
         </div>
       )}
 
-      {/* PROFILE VIEW VOOR IMPORT */}
-      {activeView === 'profile' && (
+      {currentView === 'detail' && (
         <div className="p-5">
-          <h2 className="text-2xl font-bold mb-4">Beheer</h2>
-          <input type="file" onChange={handleFileUpload} className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:bg-[#FF1493] file:text-white" />
+          <button onClick={() => setCurrentView('home')} className="mb-4"><ChevronLeft /></button>
+          <div className="bg-white rounded-3xl p-6 shadow-lg">
+            <h1 className="text-3xl font-black">{activeSpot?.name}</h1>
+            <p className="text-gray-500 mb-6">{activeSpot?.city}</p>
+            <button className="w-full bg-[#FF1493] text-white p-4 rounded-xl font-bold">Have you been?</button>
+          </div>
         </div>
       )}
 
-      {/* NAVIGATIE */}
-      <nav className="fixed bottom-0 w-full bg-white border-t p-4 flex justify-around">
-        <button onClick={() => setActiveView('home')}><Compass /></button>
-        <button onClick={() => setActiveView('profile')}><User /></button>
+      <nav className="fixed bottom-0 w-full bg-white border-t p-4 flex justify-around shadow-lg">
+        <button onClick={() => setCurrentView('all')}><LayoutGrid /></button>
+        <button onClick={() => setCurrentView('home')}><Compass /></button>
+        <button onClick={() => setCurrentView('saved')}><Heart /></button>
+        <button onClick={() => setCurrentView('profile')}><User /></button>
       </nav>
     </div>
   );
