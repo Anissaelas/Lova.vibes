@@ -13,7 +13,6 @@ const VIBE_TAGS = {
   'Hotel': ['View from bed', 'Outdoor bathtub / Jacuzzi', 'Private pool', 'Aesthetic bathroom', 'Boutique hotel', 'Adults only', 'All-inclusive luxury', 'Rooftop pool', 'Rooftop Bar', 'Instagrammable lobby', 'Spa & Wellness', 'Day pass available', 'Workation friendly']
 };
 
-// NIEUWE STEDEN TOEGEVOEGD!
 const MOCK_CITIES = [
   { id: 'c1', name: 'Bodrum', image: 'https://images.unsplash.com/photo-1524661135-423995f22d0b?q=80&w=500&auto=format&fit=crop' },
   { id: 'c2', name: 'Ibiza', image: 'https://images.unsplash.com/photo-1544227673-3112b3221b79?q=80&w=500&auto=format&fit=crop' },
@@ -142,7 +141,6 @@ export default function LocaVibesApp() {
   if (isLoadingAuth) {
     return (
       <div className="min-h-screen bg-[#FFFEE0] flex flex-col items-center justify-center font-black animate-pulse">
-        {/* LAADSCHERM MET NIEUW DIAMANT LOGO */}
         <div className="w-16 h-16 bg-[#FF1493] rounded-[18px] rotate-45 flex items-center justify-center shadow-lg shadow-[#FF1493]/40 mb-6">
           <span className="text-white font-black text-4xl -rotate-45">L</span>
         </div>
@@ -231,8 +229,6 @@ function AuthView() {
   return (
     <div className="min-h-screen bg-[#FFFEE0] flex flex-col justify-center px-6 pb-20 animate-in fade-in duration-500">
       <div className="max-w-sm w-full mx-auto space-y-8">
-        
-        {/* INLOGSCHERM MET NIEUW DIAMANT LOGO */}
         <div className="flex flex-col items-center justify-center gap-4 mb-2">
           <div className="w-20 h-20 bg-[#FF1493] rounded-[22px] rotate-45 flex items-center justify-center shadow-xl shadow-[#FF1493]/30">
             <span className="text-white font-black text-5xl -rotate-45">L</span>
@@ -296,15 +292,12 @@ function HomeFeed({ spots, onSelectSpot, onQuickSave }) {
   return (
     <div className="pb-8 animate-in fade-in duration-200">
       <div className="flex justify-between items-center px-5 pt-10 mb-4">
-        
-        {/* HOMEFEED MET NIEUW DIAMANT LOGO */}
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 bg-[#FF1493] rounded-[10px] rotate-45 flex items-center justify-center shadow-md shadow-[#FF1493]/30">
             <span className="text-white font-black text-xl -rotate-45">L</span>
           </div>
           <h1 className="text-3xl font-black text-[#FF1493] tracking-tighter ml-1">LOQA.</h1>
         </div>
-        
         <div className="flex gap-2">
           <button onClick={() => setIsFilterOpen(!isFilterOpen)} className={`p-2.5 bg-white rounded-full border shadow-sm ${activeFilter !== 'All' ? 'border-[#FF1493] text-[#FF1493]' : 'text-gray-600'}`}><SlidersHorizontal className="w-5 h-5" /></button>
           <button onClick={() => setIsSearchOpen(!isSearchOpen)} className="p-2.5 bg-white rounded-full border shadow-sm"><Search className="w-5 h-5 text-gray-600" /></button>
@@ -517,12 +510,10 @@ function AddSpotView({ onBack, onSave }) {
   );
 }
 
-function SpotDetail({ spot, onBack, onRate, onQuickSave, onNewPhoto, lists, onAddToList }) {
+function SpotDetail({ spot, onBack, onRate, onQuickSave, onNewPhoto }) {
   const [activeTab, setActiveTab] = useState('view');
   const [pendingImage, setPendingImage] = useState(null);
   const [pendingDesc, setPendingDesc] = useState('');
-  const [selectedListId, setSelectedListId] = useState('');
-  const [savedStatus, setSavedStatus] = useState('');
 
   if (!spot) return null;
   const overall = ((spot.rating?.food + spot.rating?.service + spot.rating?.vibe) / 3).toFixed(1);
@@ -577,22 +568,12 @@ function SpotDetail({ spot, onBack, onRate, onQuickSave, onNewPhoto, lists, onAd
           <button onClick={onRate} className="bg-[#222222] border border-[#333333] text-white font-bold py-3.5 rounded-2xl shadow-sm flex items-center justify-center gap-2 text-sm">Have you been?</button>
         </div>
 
-        <div className="bg-white p-4 rounded-3xl border border-gray-100 shadow-sm space-y-2.5">
-          <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Add to your collections</label>
-          <div className="flex gap-2">
-            <select value={selectedListId} onChange={(e) => setSelectedListId(e.target.value)} className="flex-1 bg-gray-50 border border-gray-100 rounded-xl px-3 py-2.5 text-xs font-bold focus:outline-gray-900 text-gray-700">
-              <option value="">Choose a list...</option>
-              {lists.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
-            </select>
-            <button onClick={() => { onAddToList(spot.id, selectedListId); setSavedStatus('Saved!'); setTimeout(()=>setSavedStatus(''), 2000); }} disabled={!selectedListId} className={`px-5 py-2.5 rounded-xl font-bold text-xs shadow-sm transition-all ${selectedListId ? 'bg-[#222222] text-white active:scale-95' : 'bg-gray-100 text-gray-400'}`}>{savedStatus || 'Save'}</button>
-          </div>
-        </div>
-
         <div className="flex gap-4">
           <div className="flex-1 bg-white p-3.5 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-3"><div className="bg-gray-50 p-2 rounded-full text-gray-700"><Utensils className="w-4 h-4"/></div><div><p className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Cuisine</p><p className="text-xs font-bold text-gray-900 truncate">{spot.cuisine || 'International'}</p></div></div>
           <div className="flex-1 bg-white p-3.5 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-3"><div className="bg-gray-50 p-2 rounded-full text-gray-700"><Info className="w-4 h-4"/></div><div><p className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Dress Code</p><p className="text-xs font-bold text-gray-900 truncate">{spot.dresscode || 'Smart Casual'}</p></div></div>
         </div>
 
+        {/* VISUAL INTELLIGENCE */}
         <div className="space-y-4 pt-4 border-t border-gray-100">
           <h2 className="text-lg font-black text-gray-900 tracking-tight">Visual Intelligence</h2>
           <div className="flex bg-gray-100/60 p-1 rounded-xl text-xs font-bold text-gray-500">
@@ -828,7 +809,11 @@ function ProfileView({ isLive, listsCount, userEmail, onBulkImport }) {
     
     reader.onload = async (event) => {
       try {
-        const text = event.target.result;
+        let text = event.target.result;
+        // Magische BOM-killer voor Nederlandse Excel bestanden
+        if (text.charCodeAt(0) === 0xFEFF) text = text.substring(1);
+        text = text.replace(/[\u200B-\u200D\uFEFF]/g, '');
+
         const lines = text.split(/\r?\n/);
         const delimiter = text.includes(';') ? ';' : ',';
         const headers = lines[0].split(delimiter).map(h => h.trim().replace(/["\r]/g, '').toLowerCase());
@@ -843,16 +828,16 @@ function ProfileView({ isLive, listsCount, userEmail, onBulkImport }) {
           const rowData = {};
           
           headers.forEach((h, index) => rowData[h] = values[index] || '');
-          if (!rowData.name || !rowData.city) continue;
+          if (!rowData.name || (!rowData.city && !rowData.location)) continue; // Nu is hij minder streng als de kolom location heet!
 
           await addDoc(collection(db, "spots"), {
             name: rowData.name, 
-            city: rowData.city, 
+            city: rowData.city || rowData.location || 'Unknown', 
             type: rowData.type || 'Restaurant', 
             cuisine: rowData.cuisine || '', 
             dresscode: rowData.dresscode || '',
             image: rowData.image || 'https://images.unsplash.com/photo-1514933651103-005eec06c04b?q=80&w=1000',
-            addressUrl: rowData.addressurl || `https://maps.google.com/?q=$$$${encodeURIComponent(rowData.name)}+${encodeURIComponent(rowData.city)}`,
+            addressUrl: rowData.addressurl || rowData.location || `https://maps.google.com/?q=$$$${encodeURIComponent(rowData.name)}`,
             websiteUrl: rowData.websiteurl || '', 
             instagramUrl: rowData.instagramurl || '', 
             bookingUrl: rowData.bookingurl || '', 
