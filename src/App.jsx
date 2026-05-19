@@ -1,21 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { Compass, LayoutGrid, Heart, User, MapPin, Flame, ChevronLeft, Search, Bookmark, Globe, Instagram, ArrowLeft } from 'lucide-react';
+import { Compass, LayoutGrid, Heart, User, MapPin, ChevronLeft, Search, Plus, ArrowLeft, Flame, Globe, Instagram, Map } from 'lucide-react';
 import { db, auth } from './firebase';
-import { collection, getDocs, doc, updateDoc, increment, arrayUnion } from 'firebase/firestore';
+import { collection, getDocs, setDoc, doc, addDoc } from 'firebase/firestore';
 import { onAuthStateChanged, signOut, signInWithEmailAndPassword } from 'firebase/auth';
-
-// Filters per type voor de Vibe Check
-const TAGS = {
-  'Restaurant': ['Business', 'Party', 'Quiet', 'Luxury', 'Solo-friendly', 'Group-friendly', 'First date', 'Romantic', 'Vegan', 'Gluten-free', 'Halal', 'Cocktails', 'Fine dining', 'Aesthetic'],
-  'Beach Club': ['Infinity pool', 'Daybed req.', 'Sunset view', 'Adults only', 'Party', 'Quiet', 'DJ', 'Instagrammable'],
-  'Hotel': ['View from bed', 'Private pool', 'Rooftop pool', 'Spa', 'Boutique', 'Workation', 'Aesthetic']
-};
 
 export default function App() {
   const [user, setUser] = useState(null);
   const [spots, setSpots] = useState([]);
   const [view, setView] = useState('home');
   const [activeSpot, setActiveSpot] = useState(null);
+  const [activeCity, setActiveCity] = useState(null);
 
   useEffect(() => {
     onAuthStateChanged(auth, (u) => { setUser(u); if (u) fetchSpots(); });
@@ -31,22 +25,22 @@ export default function App() {
   return (
     <div className="min-h-screen bg-[#FFFEE0] pb-24 font-sans">
       {view === 'home' && <HomeView spots={spots} onSelect={(s) => { setActiveSpot(s); setView('detail'); }} />}
-      {view === 'all' && <AllPlacesView spots={spots} onSelect={(s) => { setActiveSpot(s); setView('detail'); }} />}
-      {view === 'detail' && <DetailView spot={activeSpot} onBack={() => setView('home')} onReview={() => setView('review')} />}
-      {view === 'review' && <ReviewView spot={activeSpot} onBack={() => setView('detail')} onDone={() => setView('detail')} />}
+      {view === 'all' && <CityListView spots={spots} onSelectCity={(c) => { setActiveCity(c); setView('city_spots'); }} onAdd={() => setView('add')} />}
+      {view === 'city_spots' && <CitySpotsView spots={spots} city={activeCity} onSelect={(s) => { setActiveSpot(s); setView('detail'); }} onBack={() => setView('all')} />}
+      {view === 'detail' && <DetailView spot={activeSpot} onBack={() => setView('home')} />}
+      {view === 'add' && <AddSpotView onBack={() => setView('all')} onAdded={() => { fetchSpots(); setView('all'); }} />}
       {view === 'profile' && <ProfileView onRefresh={fetchSpots} />}
 
-      <nav className="fixed bottom-0 w-full bg-white border-t border-gray-100 p-4 flex justify-around z-50">
-        <button onClick={() => setView('all')} className={view === 'all' ? 'text-[#FF1493]' : 'text-gray-400'}><LayoutGrid /></button>
-        <button onClick={() => setView('home')} className={view === 'home' ? 'text-[#FF1493]' : 'text-gray-400'}><Compass /></button>
-        <button onClick={() => setView('saved')} className={view === 'saved' ? 'text-[#FF1493]' : 'text-gray-400'}><Heart /></button>
-        <button onClick={() => setView('profile')} className={view === 'profile' ? 'text-[#FF1493]' : 'text-gray-400'}><User /></button>
+      <nav className="fixed bottom-0 w-full bg-white border-t p-4 flex justify-around z-50 shadow-lg">
+        <button onClick={() => setView('all')}><LayoutGrid className={view === 'all' ? 'text-[#FF1493]' : 'text-gray-400'} /></button>
+        <button onClick={() => setView('home')}><Compass className={view === 'home' ? 'text-[#FF1493]' : 'text-gray-400'} /></button>
+        <button onClick={() => setView('profile')}><User className={view === 'profile' ? 'text-[#FF1493]' : 'text-gray-400'} /></button>
       </nav>
     </div>
   );
 }
 
-// HOME PAGINA
+// 1. HOME: Secties
 function HomeView({ spots, onSelect }) {
   return (
     <div className="p-5">
@@ -57,104 +51,77 @@ function HomeView({ spots, onSelect }) {
   );
 }
 
-function Section({ title, spots, onSelect }) {
-  return (
-    <div className="mb-8">
-      <h2 className="text-xl font-bold mb-4">{title}</h2>
-      <div className="flex gap-4 overflow-x-auto pb-2">
-        {spots.map(s => <div key={s.id} onClick={() => onSelect(s)} className="min-w-[140px] bg-white p-2 rounded-2xl shadow-sm border border-gray-100"><img src={s.image} className="w-full h-32 object-cover rounded-lg mb-2"/><p className="font-bold text-sm truncate">{s.name}</p></div>)}
-      </div>
-    </div>
-  );
-}
-
-// ALL PAGINA (Steden -> Plekken)
-function AllPlacesView({ spots, onSelect }) {
-  const [search, setSearch] = useState('');
+// 2. ALL: Stedenlijst
+function CityListView({ spots, onSelectCity, onAdd }) {
   const cities = [...new Set(spots.map(s => s.city))];
   return (
     <div className="p-5">
-      <div className="bg-white p-3 rounded-2xl flex items-center gap-2 mb-6 shadow-sm border">
-        <Search className="text-gray-400" />
-        <input className="w-full outline-none" placeholder="Zoek op naam..." onChange={(e) => setSearch(e.target.value)} />
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-2xl font-black">Ontdek steden</h2>
+        <button onClick={onAdd} className="bg-[#222222] text-white p-2 rounded-xl"><Plus /></button>
       </div>
       {cities.map(city => (
-        <div key={city} className="mb-6">
-          <h2 className="font-black text-lg mb-3">{city}</h2>
-          <div className="flex gap-4 overflow-x-auto">{spots.filter(s => s.city === city).map(s => <div key={s.id} onClick={() => onSelect(s)} className="min-w-[120px] bg-white p-2 rounded-xl shadow-sm"><p className="font-bold text-sm">{s.name}</p></div>)}</div>
+        <div key={city} onClick={() => onSelectCity(city)} className="bg-white p-6 mb-3 rounded-2xl shadow-sm border border-gray-100 flex justify-between items-center cursor-pointer">
+          <span className="font-bold text-lg">{city}</span>
+          <ChevronLeft className="rotate-180 text-gray-400" />
         </div>
       ))}
     </div>
   );
 }
 
-// DETAIL PAGINA
-function DetailView({ spot, onBack, onReview }) {
-  return (
-    <div className="p-5">
-      <button onClick={onBack} className="mb-4 p-2 bg-white rounded-full shadow-sm"><ChevronLeft /></button>
-      <div className="bg-white rounded-3xl p-6 shadow-lg border">
-        <h1 className="text-3xl font-black mb-1">{spot.name}</h1>
-        <p className="text-gray-500 mb-6 font-bold flex items-center gap-1"><MapPin size={16}/>{spot.city}</p>
-        <div className="grid grid-cols-3 gap-2 mb-6">
-          <a href={spot.websiteUrl} className="bg-gray-100 p-3 rounded-xl text-center text-[10px] font-bold">WEB</a>
-          <a href={spot.instagramUrl} className="bg-gray-100 p-3 rounded-xl text-center text-[10px] font-bold">IG</a>
-          <a href={spot.addressUrl} className="bg-gray-100 p-3 rounded-xl text-center text-[10px] font-bold">MAP</a>
-        </div>
-        <button onClick={onReview} className="w-full bg-[#FF1493] text-white p-4 rounded-xl font-bold">Have you been?</button>
-      </div>
-    </div>
-  );
-}
-
-// REVIEW PAGINA
-function ReviewView({ spot, onBack, onDone }) {
-  const [ratings, setRatings] = useState({ food: 0, service: 0, vibe: 0 });
-  const [selected, setSelected] = useState([]);
-  const toggle = (t) => setSelected(prev => prev.includes(t) ? prev.filter(x => x !== t) : [...prev, t]);
-
-  const submit = async () => {
-    await updateDoc(doc(db, "spots", spot.id), { tags: arrayUnion(...selected), ratings });
-    onDone();
-  };
-
+// 3. CITY SPOTS: Plekken filteren per stad
+function CitySpotsView({ spots, city, onSelect, onBack }) {
+  const [cat, setCat] = useState('All');
+  const filtered = spots.filter(s => s.city === city && (cat === 'All' || s.type === cat));
   return (
     <div className="p-5">
       <button onClick={onBack} className="mb-4"><ArrowLeft /></button>
-      <h2 className="text-2xl font-black mb-4">Vibe Check: {spot.name}</h2>
-      {['food', 'service', 'vibe'].map(cat => (
-        <div key={cat} className="flex justify-between items-center bg-white p-4 rounded-2xl mb-2">
-          <span className="font-bold capitalize">{cat}</span>
-          <div className="flex gap-1">{[1,2,3,4,5].map(n => <Flame key={n} onClick={() => setRatings({...ratings, [cat]: n})} className={ratings[cat] >= n ? 'text-[#FF1493] fill-[#FF1493]' : 'text-gray-300'} />)}</div>
-        </div>
-      ))}
-      <div className="flex flex-wrap gap-2 mt-4">
-        {(TAGS[spot.type] || TAGS['Restaurant']).map(t => <button key={t} onClick={() => toggle(t)} className={`p-2 rounded-lg text-[10px] font-bold border ${selected.includes(t) ? 'bg-[#FF1493] text-white' : 'bg-white'}`}>{t}</button>)}
+      <h2 className="text-2xl font-black mb-4">{city}</h2>
+      <div className="flex gap-2 overflow-x-auto pb-4 mb-2">
+        {['All', 'Restaurant', 'Hotel', 'Beach Club'].map(c => <button key={c} onClick={() => setCat(c)} className={`px-4 py-2 rounded-xl text-xs font-bold ${cat === c ? 'bg-[#FF1493] text-white' : 'bg-white border'}`}>{c}</button>)}
       </div>
-      <button onClick={submit} className="w-full bg-[#222222] text-white mt-8 p-4 rounded-xl font-bold">Opslaan</button>
+      <div className="grid grid-cols-2 gap-4">
+        {filtered.map(s => <div key={s.id} onClick={() => onSelect(s)} className="bg-white p-3 rounded-2xl border"><p className="font-bold">{s.name}</p></div>)}
+      </div>
     </div>
   );
 }
 
-// AUTH SCHERM
-function AuthScreen() {
-  const [email, setEmail] = useState(''); const [password, setPassword] = useState('');
-  return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-[#FFFEE0] p-6">
-      <h1 className="text-5xl font-black text-[#FF1493] mb-10">LOQA.</h1>
-      <input className="w-full max-w-xs p-4 mb-3 rounded-xl border" placeholder="Email" onChange={e => setEmail(e.target.value)} />
-      <input type="password" className="w-full max-w-xs p-4 mb-6 rounded-xl border" placeholder="Wachtwoord" onChange={e => setPassword(e.target.value)} />
-      <button onClick={() => signInWithEmailAndPassword(auth, email, password)} className="w-full max-w-xs bg-[#222222] text-white p-4 rounded-xl font-bold">Inloggen</button>
-    </div>
-  );
-}
-
-function ProfileView({ onRefresh }) {
+// 4. DETAIL: Met alle links
+function DetailView({ spot, onBack }) {
   return (
     <div className="p-5">
-      <h2 className="text-2xl font-bold mb-6">Instellingen</h2>
-      <button onClick={onRefresh} className="w-full bg-white p-4 rounded-xl mb-4 shadow-sm border font-bold">Ververs data</button>
-      <button onClick={() => signOut(auth)} className="w-full bg-red-500 text-white p-4 rounded-xl font-bold">Log uit</button>
+      <button onClick={onBack} className="mb-4 bg-white p-2 rounded-full shadow-sm"><ChevronLeft /></button>
+      <div className="bg-white rounded-3xl p-6 shadow-xl border">
+        <h1 className="text-3xl font-black mb-1">{spot.name}</h1>
+        <p className="text-gray-500 mb-6 font-bold flex items-center gap-1"><MapPin size={16}/>{spot.city}</p>
+        <div className="grid grid-cols-3 gap-2 mb-6">
+          {spot.websiteUrl && <a href={spot.websiteUrl} target="_blank" className="bg-gray-100 p-3 rounded-xl text-center text-[10px] font-bold">WEB</a>}
+          {spot.instagramUrl && <a href={spot.instagramUrl} target="_blank" className="bg-gray-100 p-3 rounded-xl text-center text-[10px] font-bold">IG</a>}
+          <a href={spot.addressUrl} target="_blank" className="bg-gray-100 p-3 rounded-xl text-center text-[10px] font-bold">MAP</a>
+        </div>
+        <div className="bg-gray-50 p-4 rounded-xl mb-6">
+           <p className="text-xs text-gray-500 font-bold mb-1">SCORE</p>
+           <p className="font-black text-xl text-[#FF1493]">Food: {spot.rating?.food || 5.0} | Vibe: {spot.rating?.vibe || 5.0}</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// 5. ADD: Plek toevoegen
+function AddSpotView({ onBack, onAdded }) {
+  const [data, setData] = useState({ name: '', city: '', type: 'Restaurant', status: 'live' });
+  const save = async () => { await addDoc(collection(db, "spots"), data); onAdded(); };
+  return (
+    <div className="p-5">
+      <button onClick={onBack} className="mb-4"><ArrowLeft /></button>
+      <h2 className="text-2xl font-black mb-6">Voeg plek toe</h2>
+      <input className="w-full p-4 mb-3 rounded-xl border" placeholder="Naam" onChange={e => setData({...data, name: e.target.value})} />
+      <input className="w-full p-4 mb-3 rounded-xl border" placeholder="Stad" onChange={e => setData({...data, city: e.target.value})} />
+      <input className="w-full p-4 mb-3 rounded-xl border" placeholder="Website URL" onChange={e => setData({...data, websiteUrl: e.target.value})} />
+      <button onClick={save} className="w-full bg-[#FF1493] text-white p-4 rounded-xl font-bold">Opslaan</button>
     </div>
   );
 }
