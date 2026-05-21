@@ -4,6 +4,7 @@ import {
     Search, Plus, ArrowLeft, Camera, Utensils, Armchair, 
     CalendarDays, ShieldCheck, CheckCircle, Upload
 } from 'lucide-react';
+import { ..., Instagram, Globe, MapPin } from 'lucide-react';
 import { db, auth } from './firebase';
 import { collection, getDocs, updateDoc, doc, arrayUnion, query, where, addDoc } from 'firebase/firestore';
 import { onAuthStateChanged, signOut, signInWithEmailAndPassword } from 'firebase/auth';
@@ -318,16 +319,48 @@ function SpotDetailView({ spot, user, onBack, onReview }) {
       {/* Back button */}
       <button onClick={onBack} className="p-2 bg-white rounded-full shadow-sm mb-2"><ChevronLeft size={20} /></button>
 
-      {/* Title & Rating Header */}
-      <div className="flex justify-between items-start">
-        <div>
-          <h1 className="text-3xl font-black text-gray-900">{spot.name}</h1>
-          <p className="text-sm text-gray-400 font-bold mt-1">{spot.type} • {spot.city}</p>
+ {/* --- START: NIEUWE HEADER MET LINKS --- */}
+      <div className="space-y-4">
+        <div className="flex justify-between items-start">
+          <div>
+            <h1 className="text-3xl font-black text-gray-900">{spot.name}</h1>
+            <p className="text-sm text-gray-400 font-bold mt-1">{spot.type} • {spot.city}</p>
+          </div>
+          <div className="bg-black text-white px-3 py-1.5 rounded-full font-black text-sm flex items-center gap-1 shrink-0">
+            <span>★</span> {avgScore}
+          </div>
         </div>
-        <div className="bg-black text-white px-3 py-1.5 rounded-full font-black text-sm flex items-center gap-1">
-          <span>★</span> {avgScore}
+
+        {/* De nieuwe snelle linkjes met icoontjes */}
+        <div className="flex flex-wrap gap-2">
+          {insta && (
+            <a href={insta} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 bg-pink-50 text-[#FF1493] px-3 py-2 rounded-xl text-xs font-bold hover:bg-pink-100 transition-colors shadow-sm">
+              <Instagram size={16} /> Instagram
+            </a>
+          )}
+          {web && (
+            <a href={web} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 bg-white border border-gray-200 text-gray-700 px-3 py-2 rounded-xl text-xs font-bold hover:bg-gray-50 transition-colors shadow-sm">
+              <Globe size={16} /> Website
+            </a>
+          )}
+          {map && (
+            <a href={map} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 bg-white border border-gray-200 text-gray-700 px-3 py-2 rounded-xl text-xs font-bold hover:bg-gray-50 transition-colors shadow-sm">
+              <MapPin size={16} /> Locatie
+            </a>
+          )}
         </div>
       </div>
+
+      {/* Action Buttons */}
+      <div className="grid grid-cols-2 gap-3">
+        <button className="bg-white border border-pink-200 text-[#FF1493] font-bold py-3.5 rounded-2xl shadow-sm text-center">
+          Aanrader?
+        </button>
+        <button onClick={openListModal} className="bg-[#111827] text-white font-bold py-3.5 rounded-2xl shadow-sm text-center">
+          Lijst
+        </button>
+      </div>
+      {/* --- EIND: NIEUWE HEADER MET LINKS --- */}
 
       {/* Action Buttons van Screenshot */}
       <div className="grid grid-cols-2 gap-3">
