@@ -5,7 +5,7 @@ import {
     CalendarDays, ShieldCheck, CheckCircle, Upload
 } from 'lucide-react';
 import { db, auth } from './firebase';
-import { collection, getDocs, updateDoc, doc, arrayUnion } from 'firebase/firestore';
+import { collection, getDocs, updateDoc, doc, arrayUnion, query, where, addDoc } from 'firebase/firestore';
 import { onAuthStateChanged, signOut, signInWithEmailAndPassword } from 'firebase/auth';
 
 // --- FILTER TAGS PER CATEGORY ---
@@ -58,9 +58,9 @@ export default function App() {
             {view === 'home' && <HomeView spots={spots} onSelect={(s) => { setActiveSpot(s); setView('detail'); }} />}
             {view === 'all' && <AllCitiesView spots={spots} onSelectCity={(c) => { setActiveCity(c); setView('city_spots'); }} />}
             {view === 'city_spots' && <CityDetailView spots={spots} city={activeCity} onSelect={(s) => { setActiveSpot(s); setView('detail'); }} onBack={() => setView('all')} />}
-            {view === 'detail' && <SpotDetailView spot={activeSpot} onBack={() => setView('home')} onReview={() => setView('review')} />}
+            {view === 'detail' && <SpotDetailView spot={activeSpot} user={user} onBack={() => setView('home')} onReview={() => setView('review')} />}
             {view === 'review' && <ReviewSubmissionView spot={activeSpot} onBack={() => setView('detail')} onDone={() => { fetchSpots(); setView('detail'); }} />}
-            {view === 'saved' && <MyListsView user={user} spots={spots} />}
+            {view === 'saved' && <MyListsView user={user} spots={spots} onSelectSpot={(s) => { setActiveSpot(s); setView('detail'); }} />}
             {view === 'profile' && <ProfileView onRefresh={fetchSpots} />}
 
             {/* BOTTOM NAVIGATION */}
@@ -87,7 +87,6 @@ export default function App() {
 function HomeView({ spots, onSelect }) {
     const [searchQuery, setSearchQuery] = useState('');
     
-    // Editor's Choice Mock (Zou uit database kunnen komen o.b.v. een boolean)
     const editorsChoice = spots.find(s => s.isEditorsChoice) || spots[0]; 
     const top10 = [...spots].sort((a,b) => ((b.rating?.vibe || 0) - (a.rating?.vibe || 0))).slice(0,10);
     const justOpened = spots.filter(s => s.status === 'just_opened');
@@ -145,7 +144,7 @@ function HomeView({ spots, onSelect }) {
                     {top10.map((s, idx) => (
                         <div key={s.id} onClick={() => onSelect(s)} className="min-w-[140px] bg-white p-2 rounded-2xl shadow-sm cursor-pointer border border-pink-50">
                             <div className="relative h-28 bg-gray-100 rounded-xl mb-2 overflow-hidden">
-                                <img src={s.image} className="w-full h-full object-cover" alt={s.name} />
+                                <img src={s.image || 'https://via.placeholder.com/150'} className="w-full h-full object-cover" alt={s.name} />
                                 <div className="absolute top-2 left-2 bg-black/70 text-white text-[10px] font-black px-2 py-0.5 rounded-full">#{idx + 1}</div>
                             </div>
                             <p className="font-bold text-sm truncate">{s.name}</p>
@@ -162,7 +161,7 @@ function HomeView({ spots, onSelect }) {
                     {justOpened.map(s => (
                         <div key={s.id} onClick={() => onSelect(s)} className="min-w-[140px] bg-white p-2 rounded-2xl shadow-sm cursor-pointer border border-pink-50">
                             <div className="h-28 bg-gray-100 rounded-xl mb-2 overflow-hidden">
-                                <img src={s.image} className="w-full h-full object-cover" alt={s.name} />
+                                <img src={s.image || 'https://via.placeholder.com/150'} className="w-full h-full object-cover" alt={s.name} />
                             </div>
                             <p className="font-bold text-sm truncate">{s.name}</p>
                         </div>
@@ -175,11 +174,8 @@ function HomeView({ spots, onSelect }) {
 
 // --- SCREEN 2: ALL PLACES VIEW (CITIES) ---
 function AllCitiesView({ spots, onSelectCity }) {
-    // Dynamisch steden en hun tellingen groeperen
     const cityCounts = spots.reduce((acc, spot) => {
-        if (spot.city) {
-            acc[spot.city] = (acc[spot.city] || 0) + 1;
-        }
+        if (spot.city) acc[spot.city] = (acc[spot.city] || 0) + 1;
         return acc;
     }, {});
     
@@ -225,7 +221,6 @@ function CityDetailView({ spots, city, onSelect, onBack }) {
                 </div>
             </div>
 
-            {/* Filters */}
             <div className="flex gap-2 overflow-x-auto pb-4 mb-2 scrollbar-hide">
                 {filters.map(f => (
                     <button 
@@ -238,10 +233,8 @@ function CityDetailView({ spots, city, onSelect, onBack }) {
                 ))}
             </div>
 
-            {/* List Layout met Vergevingsgezinde Linkjes */}
             <div className="space-y-4">
                 {filteredSpots.map(s => {
-                    // SLIMME CHECK: Zoek naar verschillende schrijfwijzen in jouw Firebase
                     const insta = s.instagramUrl || s.instagram || s.Instagram;
                     const web = s.websiteUrl || s.website || s.Website || s.url;
                     const map = s.addressUrl || s.address || s.Location || s.locatie;
@@ -256,7 +249,6 @@ function CityDetailView({ spots, city, onSelect, onBack }) {
                                 <h3 className="font-bold text-gray-900 truncate">{s.name}</h3>
                                 <p className="text-xs text-gray-500 font-semibold mb-2">{s.type}</p>
                                 
-                                {/* Linkjes */}
                                 <div className="flex gap-2">
                                     {insta && (
                                         <a href={insta} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="bg-pink-50 text-[#FF1493] px-2 py-1 rounded text-[10px] font-bold hover:bg-pink-100">
@@ -275,10 +267,7 @@ function CityDetailView({ spots, city, onSelect, onBack }) {
                                     )}
                                 </div>
                             </div>
-                            
-                            <div className="bg-pink-50 p-2 rounded-full text-[#FF1493] shrink-0">
-                                <Flame size={16} className="fill-current" />
-                            </div>
+                            <div className="bg-pink-50 p-2 rounded-full text-[#FF1493] shrink-0"><Flame size={16} className="fill-current" /></div>
                         </div>
                     );
                 })}
@@ -288,18 +277,15 @@ function CityDetailView({ spots, city, onSelect, onBack }) {
 }
 
 // --- SCREEN 4: SPOT DETAIL VIEW ---
-// --- START: SPOT DETAIL VIEW MODULE ---
 function SpotDetailView({ spot, user, onBack, onReview }) {
   if (!spot) return null;
 
   const [showListModal, setShowListModal] = useState(false);
   const [userLists, setUserLists] = useState([]);
 
-  // Haal je mappen op zodra je op "Lijst" klikt
   const openListModal = async () => {
     setShowListModal(true);
     try {
-      const { collection, getDocs, query, where } = await import('firebase/firestore');
       const q = query(collection(db, "lists"), where("userId", "==", user.uid));
       const snapshot = await getDocs(q);
       setUserLists(snapshot.docs.map(d => ({ id: d.id, ...d.data() })));
@@ -310,14 +296,8 @@ function SpotDetailView({ spot, user, onBack, onReview }) {
 
   const addSpotToList = async (listId) => {
     try {
-      const { doc, updateDoc, arrayUnion } = await import('firebase/firestore');
       const listRef = doc(db, "lists", listId);
-      
-      // Zorg dat we ALTIJD het Firestore Document ID gebruiken (spot.id)
-      await updateDoc(listRef, {
-        spotIds: arrayUnion(spot.id)
-      });
-      
+      await updateDoc(listRef, { spotIds: arrayUnion(spot.id) });
       alert("Plek succesvol toegevoegd aan de lijst!");
       setShowListModal(false);
     } catch (e) {
@@ -327,13 +307,14 @@ function SpotDetailView({ spot, user, onBack, onReview }) {
   };
 
   const avgScore = spot.rating ? ((spot.rating.food + spot.rating.service + spot.rating.vibe) / 3).toFixed(1) : "9.6";
+  const insta = spot.instagramUrl || spot.instagram || spot.Instagram;
+  const web = spot.websiteUrl || spot.website || spot.Website || spot.url;
+  const map = spot.addressUrl || spot.address || spot.Location || spot.locatie;
 
   return (
-    <div className="max-w-md mx-auto p-5 space-y-4">
-      {/* Back button */}
+    <div className="max-w-md mx-auto p-5 space-y-4 pb-20">
       <button onClick={onBack} className="p-2 bg-white rounded-full shadow-sm mb-2"><ChevronLeft size={20} /></button>
 
-      {/* Title & Rating Header */}
       <div className="flex justify-between items-start">
         <div>
           <h1 className="text-3xl font-black text-gray-900">{spot.name}</h1>
@@ -344,7 +325,6 @@ function SpotDetailView({ spot, user, onBack, onReview }) {
         </div>
       </div>
 
-      {/* Action Buttons */}
       <div className="grid grid-cols-2 gap-3">
         <button className="bg-white border border-pink-200 text-[#FF1493] font-bold py-3.5 rounded-2xl shadow-sm text-center">
           Aanrader?
@@ -354,7 +334,6 @@ function SpotDetailView({ spot, user, onBack, onReview }) {
         </button>
       </div>
 
-      {/* Omschrijving Card */}
       <div className="bg-white p-5 rounded-3xl border border-pink-50 shadow-sm space-y-1">
         <div className="flex justify-between items-center">
           <h3 className="font-bold text-gray-900 text-sm">Omschrijving</h3>
@@ -363,7 +342,6 @@ function SpotDetailView({ spot, user, onBack, onReview }) {
         <p className="text-xs text-gray-400 italic">Nog geen omschrijving. Voeg er een toe.</p>
       </div>
 
-      {/* Foto's van anderen Card */}
       <div className="bg-white p-5 rounded-3xl border border-pink-50 shadow-sm space-y-1">
         <div className="flex justify-between items-center">
           <h3 className="font-bold text-gray-900 text-sm">Foto's van anderen</h3>
@@ -372,43 +350,29 @@ function SpotDetailView({ spot, user, onBack, onReview }) {
         <p className="text-xs text-gray-400 italic">Nog geen foto's. Wees de eerste.</p>
       </div>
 
-      {/* Tags & Dresscode */}
       <div className="flex flex-wrap gap-2">
         {spot.cuisine && <span className="bg-white px-3 py-1.5 rounded-full text-xs font-bold text-gray-700 border shadow-sm">{spot.cuisine}</span>}
         <span className="bg-black text-white px-3 py-1.5 rounded-full text-xs font-bold shadow-sm">★ Top Vibe</span>
       </div>
-      <div className="bg-pink-50 text-[#FF1493] p-3 rounded-xl text-xs font-semibold border border-pink-100">
-        Dresscode: Formal — jackets mandatory for men at dinner
-      </div>
 
-      {/* Locatie Link Card */}
-      {spot.addressUrl && (
-        <a href={spot.addressUrl} target="_blank" rel="noreferrer" className="bg-white p-4 rounded-2xl border border-pink-50 shadow-sm flex justify-between items-center">
-          <div>
-            <p className="text-[10px] text-gray-400 font-bold uppercase">Locatie</p>
-            <p className="text-sm font-bold text-gray-800">{spot.city}</p>
-          </div>
+      {map && (
+        <a href={map} target="_blank" rel="noreferrer" className="bg-white p-4 rounded-2xl border border-pink-50 shadow-sm flex justify-between items-center">
+          <div><p className="text-[10px] text-gray-400 font-bold uppercase">Locatie</p><p className="text-sm font-bold text-gray-800">{spot.city}</p></div>
           <ChevronLeft size={16} className="rotate-180 text-gray-400" />
         </a>
       )}
 
-      {/* Instagram Link Card */}
-      {spot.instagramUrl && (
-        <a href={spot.instagramUrl} target="_blank" rel="noreferrer" className="bg-white p-4 rounded-2xl border border-pink-50 shadow-sm flex justify-between items-center">
-          <div>
-            <p className="text-[10px] text-gray-400 font-bold uppercase">Instagram</p>
-            <p className="text-sm font-bold text-gray-800">Bekijk profiel</p>
-          </div>
+      {insta && (
+        <a href={insta} target="_blank" rel="noreferrer" className="bg-white p-4 rounded-2xl border border-pink-50 shadow-sm flex justify-between items-center">
+          <div><p className="text-[10px] text-gray-400 font-bold uppercase">Instagram</p><p className="text-sm font-bold text-gray-800">Bekijk profiel</p></div>
           <ChevronLeft size={16} className="rotate-180 text-gray-400" />
         </a>
       )}
 
-      {/* HAVE YOU BEEN BUTTON */}
       <button onClick={onReview} className="w-full bg-[#FF1493] text-white font-black py-4 rounded-2xl shadow-md mt-4">
         HAVE YOU BEEN? GIVE YOUR REVIEW
       </button>
 
-      {/* MODAL: KIES EEN LIJST (GECORRIGEERD) */}
       {showListModal && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-6">
           <div className="bg-white w-full max-w-sm rounded-3xl p-6 shadow-2xl space-y-4">
@@ -416,18 +380,13 @@ function SpotDetailView({ spot, user, onBack, onReview }) {
             <div className="space-y-2 max-h-60 overflow-y-auto">
               {userLists.map(list => (
                 <button 
-                  key={list.id} 
-                  type="button"
-                  onClick={() => addSpotToList(list.id)}
+                  key={list.id} type="button" onClick={() => addSpotToList(list.id)}
                   className="w-full text-left p-4 bg-gray-50 hover:bg-pink-50 rounded-xl font-bold text-sm transition-colors flex justify-between items-center"
                 >
-                  <span>{list.name}</span>
-                  <span className="text-xs text-gray-400 font-normal">{(list.spotIds || []).length} items</span>
+                  <span>{list.name}</span><span className="text-xs text-gray-400 font-normal">{(list.spotIds || []).length} items</span>
                 </button>
               ))}
-              {userLists.length === 0 && (
-                <p className="text-xs text-gray-400 italic p-2">Je hebt nog geen mappen aangemaakt. Ga naar het Hartje-tabblad om een lijst te maken.</p>
-              )}
+              {userLists.length === 0 && <p className="text-xs text-gray-400 italic p-2">Je hebt nog geen mappen. Ga naar het Hartje-tabblad om een lijst te maken.</p>}
             </div>
             <button onClick={() => setShowListModal(false)} className="w-full bg-gray-100 text-gray-600 font-bold py-3 rounded-xl text-xs">Sluiten</button>
           </div>
@@ -436,7 +395,6 @@ function SpotDetailView({ spot, user, onBack, onReview }) {
     </div>
   );
 }
-// --- EIND: SPOT DETAIL VIEW MODULE ---
 
 // --- SCREEN 5: REVIEW SUBMISSION VIEW ---
 function ReviewSubmissionView({ spot, onBack, onDone }) {
@@ -445,7 +403,6 @@ function ReviewSubmissionView({ spot, onBack, onDone }) {
     const [vibeRating, setVibeRating] = useState(5);
     const [selectedVibes, setSelectedVibes] = useState([]);
     
-    // Select the right tags based on spot type
     const availableTags = TAGS_MAP[spot.type] || TAGS_MAP['Restaurant'];
 
     const toggleVibe = (tag) => {
@@ -467,20 +424,18 @@ function ReviewSubmissionView({ spot, onBack, onDone }) {
     };
 
     return (
-        <div className="p-5 max-w-md mx-auto space-y-6 pb-10">
+        <div className="p-5 max-w-md mx-auto space-y-6 pb-20">
             <div className="flex items-center gap-3">
                 <button onClick={onBack} className="p-2 bg-white rounded-full shadow-sm"><ArrowLeft size={20}/></button>
                 <h1 className="text-xl font-black">Jouw Vibe Check: <br/><span className="text-[#FF1493]">{spot.name}</span></h1>
             </div>
 
-            {/* Sliders Section */}
             <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 space-y-5">
                 <SliderRow label="Eten" value={foodRating} onChange={setFoodRating} />
                 <SliderRow label="Service" value={serviceRating} onChange={setServiceRating} />
                 <SliderRow label="Vibe" value={vibeRating} onChange={setVibeRating} />
             </div>
 
-            {/* Vibes Selection */}
             <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100">
                 <h3 className="font-bold text-gray-900 mb-4">Welke vibes passen hierbij?</h3>
                 <div className="flex flex-wrap gap-2">
@@ -496,10 +451,8 @@ function ReviewSubmissionView({ spot, onBack, onDone }) {
                 </div>
             </div>
 
-            {/* Photo Upload Section */}
             <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 space-y-4">
                 <h3 className="font-bold text-gray-900 mb-2">Deel je foto's</h3>
-                
                 <div className="bg-gray-50 p-3 rounded-2xl border border-gray-200">
                     <p className="text-xs font-bold mb-2">The View (optioneel)</p>
                     <div className="flex gap-2 mb-2">
@@ -508,7 +461,6 @@ function ReviewSubmissionView({ spot, onBack, onDone }) {
                         <input type="date" placeholder="Datum" className="flex-1 text-xs p-2 rounded-xl border border-gray-200" />
                     </div>
                 </div>
-
                 <div className="bg-gray-50 p-3 rounded-2xl border border-gray-200">
                     <p className="text-xs font-bold mb-2">The Interior & Table (optioneel)</p>
                     <div className="flex gap-2">
@@ -516,7 +468,6 @@ function ReviewSubmissionView({ spot, onBack, onDone }) {
                         <input type="text" placeholder="Korte omschrijving..." className="w-full text-xs p-2 rounded-xl border border-gray-200" />
                     </div>
                 </div>
-
                 <div className="bg-gray-50 p-3 rounded-2xl border border-gray-200">
                     <p className="text-xs font-bold mb-2">Food (optioneel)</p>
                     <div className="flex gap-2">
@@ -533,13 +484,11 @@ function ReviewSubmissionView({ spot, onBack, onDone }) {
     );
 }
 
-// Helper Slider Component
 function SliderRow({ label, value, onChange }) {
     return (
         <div className="space-y-1">
             <div className="flex justify-between items-center text-sm font-bold text-gray-700">
-                <span>{label}</span>
-                <span className="text-[#FF1493]">{value.toFixed(1)} / 5</span>
+                <span>{label}</span><span className="text-[#FF1493]">{value.toFixed(1)} / 5</span>
             </div>
             <input type="range" min="1" max="5" step="0.1" value={value} onChange={(e) => onChange(parseFloat(e.target.value))} className="w-full accent-[#FF1493]" />
             <div className="flex items-center justify-between px-2 pt-1">
@@ -547,6 +496,93 @@ function SliderRow({ label, value, onChange }) {
             </div>
         </div>
     );
+}
+
+// --- SCREEN: MYLISTS VIEW ---
+function MyListsView({ user, spots, onSelectSpot }) {
+  const [lists, setLists] = useState([]);
+  const [showModal, setShowModal] = useState(false);
+  const [newListName, setNewListName] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [activeList, setActiveList] = useState(null);
+
+  useEffect(() => { if (user) fetchUserLists(); }, [user]);
+
+  const fetchUserLists = async () => {
+    try {
+      const q = query(collection(db, "lists"), where("userId", "==", user.uid));
+      const snapshot = await getDocs(q);
+      setLists(snapshot.docs.map(d => ({ id: d.id, ...d.data() })));
+    } catch (e) { console.error(e); } finally { setLoading(false); }
+  };
+
+  const handleCreateList = async (e) => {
+    e.preventDefault();
+    if (!newListName.trim()) return;
+    try {
+      await addDoc(collection(db, "lists"), {
+        name: newListName, userId: user.uid, spotIds: [], createdAt: new Date().toISOString()
+      });
+      setNewListName(''); setShowModal(false); fetchUserLists();
+    } catch (e) { console.error(e); }
+  };
+
+  if (activeList) {
+    const currentList = lists.find(l => l.id === activeList.id) || activeList;
+    const savedSpots = spots.filter(s => currentList.spotIds?.includes(s.id));
+    
+    return (
+      <div className="p-5 max-w-md mx-auto">
+        <button onClick={() => setActiveList(null)} className="p-2 bg-white rounded-full shadow-sm mb-4"><ArrowLeft size={18}/></button>
+        <h2 className="text-3xl font-black text-gray-900 mb-1">{currentList.name}</h2>
+        <p className="text-xs text-gray-400 font-bold mb-6">{savedSpots.length} opgeslagen plekken</p>
+        <div className="grid grid-cols-2 gap-4">
+          {savedSpots.map(s => (
+            <div key={s.id} onClick={() => onSelectSpot(s)} className="bg-white p-2 rounded-2xl border shadow-sm cursor-pointer">
+              <div className="h-32 bg-gray-100 rounded-lg mb-2 overflow-hidden"><img src={s.image || 'https://via.placeholder.com/150'} className="w-full h-full object-cover" alt="" /></div>
+              <p className="font-bold text-sm truncate">{s.name}</p>
+            </div>
+          ))}
+          {savedSpots.length === 0 && <p className="text-xs text-gray-400 italic col-span-2 text-center py-8">Deze lijst is nog leeg.</p>}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-5 max-w-md mx-auto min-h-[calc(100vh-80px)]">
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-3xl font-black text-gray-900">Mijn Lijsten</h2>
+        <button onClick={() => setShowModal(true)} className="bg-[#FF1493] text-white p-2.5 rounded-2xl shadow-md"><Plus size={20} /></button>
+      </div>
+      {loading ? <p className="text-sm font-bold text-[#FF1493] text-center mt-10">Lijsten laden...</p> : lists.length === 0 ? (
+        <div className="text-center py-12 bg-white rounded-3xl border border-pink-50 p-6 shadow-sm"><p className="text-sm text-gray-500 font-medium">Je hebt nog geen mappen.</p></div>
+      ) : (
+        <div className="space-y-3">
+          {lists.map(list => (
+            <div key={list.id} onClick={() => setActiveList(list)} className="bg-white p-5 rounded-2xl shadow-sm border border-pink-50 flex justify-between items-center cursor-pointer hover:shadow-md transition-shadow">
+              <div><h3 className="font-bold text-lg text-gray-900">{list.name}</h3><p className="text-xs text-gray-400 font-semibold">{(list.spotIds || []).length} plekken</p></div>
+              <ChevronLeft size={16} className="rotate-180 text-gray-400" />
+            </div>
+          ))}
+        </div>
+      )}
+      {showModal && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-6">
+          <div className="bg-white w-full max-w-sm rounded-3xl p-6 shadow-2xl">
+            <h3 className="text-xl font-black mb-4">Nieuwe lijst maken</h3>
+            <form onSubmit={handleCreateList} className="space-y-4">
+              <input type="text" placeholder="Bijv. Brunch Spots..." value={newListName} onChange={(e) => setNewListName(e.target.value)} className="w-full p-4 rounded-2xl border bg-gray-50 font-medium text-sm" />
+              <div className="flex gap-3">
+                <button type="button" onClick={() => setShowModal(false)} className="flex-1 bg-gray-100 text-gray-600 font-bold py-3 rounded-2xl text-sm">Annuleren</button>
+                <button type="submit" className="flex-1 bg-[#FF1493] text-white font-black py-3 rounded-2xl text-sm">Aanmaken</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }
 
 // --- PROFILE VIEW ---
