@@ -339,15 +339,6 @@ function SpotDetailView({ spot, user, onBack, onReview }) {
         </button>
       </div>
 
-      {/* Omschrijving Card */}
-      <div className="bg-white p-5 rounded-3xl border border-pink-50 shadow-sm space-y-1">
-        <div className="flex justify-between items-center">
-          <h3 className="font-bold text-gray-900 text-sm">Omschrijving</h3>
-          <button className="text-[#FF1493] text-xs font-bold">Voeg toe</button>
-        </div>
-        <p className="text-xs text-gray-400 italic">Nog geen omschrijving. Voeg er een toe.</p>
-      </div>
-
       {/* Foto's van anderen Card */}
       <div className="bg-white p-5 rounded-3xl border border-pink-50 shadow-sm space-y-1">
         <div className="flex justify-between items-center">
@@ -401,7 +392,7 @@ function SpotDetailView({ spot, user, onBack, onReview }) {
 
       {/* HAVE YOU BEEN BUTTON */}
       <button onClick={onReview} className="w-full bg-[#FF1493] text-white font-black py-4 rounded-2xl shadow-md mt-4">
-        HAVE YOU BEEN? GIVE YOUR REVIEW
+        HAVE YOU BEEN?
       </button>
 
       {/* MODAL: KIES EEN LIJST */}
