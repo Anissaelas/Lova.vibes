@@ -7,6 +7,7 @@ import {
 import { db, auth } from './firebase';
 import { collection, getDocs, updateDoc, doc, arrayUnion, query, where, addDoc } from 'firebase/firestore';
 import { onAuthStateChanged, signOut, signInWithEmailAndPassword } from 'firebase/auth';
+import { onAuthStateChanged, signOut, signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
 
 // --- FILTER TAGS PER CATEGORY ---
 const TAGS_MAP = {
@@ -173,7 +174,8 @@ function HomeView({ spots, onSelect }) {
 }
 
 // --- SCREEN 2: ALL PLACES VIEW (CITIES) ---
-function AllCitiesView({ spots, onSelectCity }) {
+// --- START: ALL CITIES VIEW WITH ADD BUTTON ---
+function AllCitiesView({ spots, onSelectCity, onAdd }) {
     const cityCounts = spots.reduce((acc, spot) => {
         if (spot.city) acc[spot.city] = (acc[spot.city] || 0) + 1;
         return acc;
@@ -183,7 +185,17 @@ function AllCitiesView({ spots, onSelectCity }) {
 
     return (
         <div className="p-5 max-w-md mx-auto">
-            <h1 className="text-3xl font-black mb-6">All Cities</h1>
+            {/* Header met de missende Plus-knop */}
+            <div className="flex justify-between items-center mb-6">
+                <h1 className="text-3xl font-black text-gray-900">All Cities</h1>
+                <button 
+                    onClick={onAdd} 
+                    className="bg-black text-white p-2.5 rounded-2xl shadow-md transform hover:scale-105 active:scale-95 transition-all"
+                >
+                    <Plus size={20} />
+                </button>
+            </div>
+
             <div className="grid grid-cols-2 gap-4">
                 {cities.map(city => {
                     const sampleSpot = spots.find(s => s.city === city.name);
@@ -202,6 +214,7 @@ function AllCitiesView({ spots, onSelectCity }) {
         </div>
     );
 }
+// --- EIND: ALL CITIES VIEW WITH ADD BUTTON ---
 
 // --- SCREEN 3: CITY DETAIL VIEW ---
 function CityDetailView({ spots, city, onSelect, onBack }) {
@@ -361,15 +374,6 @@ function SpotDetailView({ spot, user, onBack, onReview }) {
       </div>
       {/* --- EIND: NIEUWE HEADER MET LINKS --- */}
 
-      {/* Action Buttons van Screenshot */}
-      <div className="grid grid-cols-2 gap-3">
-        <button className="bg-white border border-pink-200 text-[#FF1493] font-bold py-3.5 rounded-2xl shadow-sm text-center">
-          Aanrader?
-        </button>
-        <button onClick={openListModal} className="bg-[#111827] text-white font-bold py-3.5 rounded-2xl shadow-sm text-center">
-          Lijst
-        </button>
-      </div>
 
       {/* Foto's van anderen Card */}
       <div className="bg-white p-5 rounded-3xl border border-pink-50 shadow-sm space-y-1">
@@ -652,20 +656,76 @@ function ProfileView({ onRefresh }) {
 }
 
 // --- LOGIN SCREEN ---
+// --- START: AUTH SCREEN WITH REGISTER OPTION ---
 function AuthScreen() {
     const [email, setEmail] = useState(''); 
     const [password, setPassword] = useState('');
+    const [isRegistering, setIsRegistering] = useState(false); // Schakelaar voor modus
+    const [error, setError] = useState('');
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        setError('');
+        try {
+            if (isRegistering) {
+                await createUserWithEmailAndPassword(auth, email, password);
+                alert("Account succesvol aangemaakt! Welkom bij LOQA.");
+            } else {
+                await signInWithEmailAndPassword(auth, email, password);
+            }
+        } catch (err) {
+            console.error(err);
+            setError(err.message.replace("Firebase: ", ""));
+        }
+    };
     
     return (
         <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-[#FFFEE0]">
             <h1 className="text-6xl font-black bg-gradient-to-r from-[#FF1493] to-orange-400 bg-clip-text text-transparent mb-2 tracking-tighter">LOQA</h1>
-            <p className="text-lg font-bold text-gray-600 mb-10 tracking-widest uppercase">Access the vibes</p>
+            <p className="text-lg font-bold text-gray-600 mb-10 tracking-widest uppercase">
+                {isRegistering ? "Create an account" : "Access the vibes"}
+            </p>
             
-            <div className="w-full max-w-xs space-y-3">
-                <input type="email" placeholder="Email" onChange={e => setEmail(e.target.value)} className="w-full p-4 rounded-2xl border-none shadow-sm bg-white font-medium focus:ring-2 focus:ring-[#FF1493]" />
-                <input type="password" placeholder="Wachtwoord" onChange={e => setPassword(e.target.value)} className="w-full p-4 rounded-2xl border-none shadow-sm bg-white font-medium focus:ring-2 focus:ring-[#FF1493]" />
-                <button onClick={() => signInWithEmailAndPassword(auth, email, password)} className="w-full bg-[#FF1493] text-white p-4 rounded-2xl font-black shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all mt-4">Inloggen</button>
-            </div>
+            <form onSubmit={handleSubmit} className="w-full max-w-xs space-y-3">
+                {error && (
+                    <div className="p-3 bg-red-100 text-red-600 text-xs font-bold rounded-xl border border-red-200">
+                        {error}
+                    </div>
+                )}
+
+                <input 
+                    type="email" 
+                    placeholder="Email" 
+                    required
+                    onChange={e => setEmail(e.target.value)} 
+                    className="w-full p-4 rounded-2xl border-none shadow-sm bg-white font-medium focus:ring-2 focus:ring-[#FF1493] focus:outline-none" 
+                />
+                <input 
+                    type="password" 
+                    placeholder="Wachtwoord" 
+                    required
+                    onChange={e => setPassword(e.target.value)} 
+                    className="w-full p-4 rounded-2xl border-none shadow-sm bg-white font-medium focus:ring-2 focus:ring-[#FF1493] focus:outline-none" 
+                />
+                
+                <button 
+                    type="submit" 
+                    className="w-full bg-[#FF1493] text-white p-4 rounded-2xl font-black shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all mt-4"
+                >
+                    {isRegistering ? "Registreren" : "Inloggen"}
+                </button>
+
+                <div className="text-center pt-4">
+                    <button 
+                        type="button"
+                        onClick={() => { setIsRegistering(!isRegistering); setError(''); }}
+                        className="text-xs text-gray-500 font-bold hover:text-[#FF1493] transition-colors"
+                    >
+                        {isRegistering ? "Heb je al een account? Log in" : "Nog geen account? Registreer hier"}
+                    </button>
+                </div>
+            </form>
         </div>
     );
 }
+// --- EIND: AUTH SCREEN WITH REGISTER OPTION ---
