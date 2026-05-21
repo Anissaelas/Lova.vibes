@@ -307,14 +307,18 @@ function SpotDetailView({ spot, user, onBack, onReview }) {
   };
 
   const avgScore = spot.rating ? ((spot.rating.food + spot.rating.service + spot.rating.vibe) / 3).toFixed(1) : "9.6";
+  
+  // VERGEVINGSGEZINDE CHECK: Zoekt naar alle mogelijke schrijfwijzen in je Firebase
   const insta = spot.instagramUrl || spot.instagram || spot.Instagram;
   const web = spot.websiteUrl || spot.website || spot.Website || spot.url;
   const map = spot.addressUrl || spot.address || spot.Location || spot.locatie;
 
   return (
     <div className="max-w-md mx-auto p-5 space-y-4 pb-20">
+      {/* Back button */}
       <button onClick={onBack} className="p-2 bg-white rounded-full shadow-sm mb-2"><ChevronLeft size={20} /></button>
 
+      {/* Title & Rating Header */}
       <div className="flex justify-between items-start">
         <div>
           <h1 className="text-3xl font-black text-gray-900">{spot.name}</h1>
@@ -325,6 +329,7 @@ function SpotDetailView({ spot, user, onBack, onReview }) {
         </div>
       </div>
 
+      {/* Action Buttons van Screenshot */}
       <div className="grid grid-cols-2 gap-3">
         <button className="bg-white border border-pink-200 text-[#FF1493] font-bold py-3.5 rounded-2xl shadow-sm text-center">
           Aanrader?
@@ -334,6 +339,7 @@ function SpotDetailView({ spot, user, onBack, onReview }) {
         </button>
       </div>
 
+      {/* Omschrijving Card */}
       <div className="bg-white p-5 rounded-3xl border border-pink-50 shadow-sm space-y-1">
         <div className="flex justify-between items-center">
           <h3 className="font-bold text-gray-900 text-sm">Omschrijving</h3>
@@ -342,6 +348,7 @@ function SpotDetailView({ spot, user, onBack, onReview }) {
         <p className="text-xs text-gray-400 italic">Nog geen omschrijving. Voeg er een toe.</p>
       </div>
 
+      {/* Foto's van anderen Card */}
       <div className="bg-white p-5 rounded-3xl border border-pink-50 shadow-sm space-y-1">
         <div className="flex justify-between items-center">
           <h3 className="font-bold text-gray-900 text-sm">Foto's van anderen</h3>
@@ -350,29 +357,54 @@ function SpotDetailView({ spot, user, onBack, onReview }) {
         <p className="text-xs text-gray-400 italic">Nog geen foto's. Wees de eerste.</p>
       </div>
 
+      {/* Tags & Dresscode */}
       <div className="flex flex-wrap gap-2">
         {spot.cuisine && <span className="bg-white px-3 py-1.5 rounded-full text-xs font-bold text-gray-700 border shadow-sm">{spot.cuisine}</span>}
         <span className="bg-black text-white px-3 py-1.5 rounded-full text-xs font-bold shadow-sm">★ Top Vibe</span>
       </div>
+      <div className="bg-pink-50 text-[#FF1493] p-3 rounded-xl text-xs font-semibold border border-pink-100">
+        Dresscode: Formal — jackets mandatory for men at dinner
+      </div>
 
+      {/* Locatie Link Card */}
       {map && (
-        <a href={map} target="_blank" rel="noreferrer" className="bg-white p-4 rounded-2xl border border-pink-50 shadow-sm flex justify-between items-center">
-          <div><p className="text-[10px] text-gray-400 font-bold uppercase">Locatie</p><p className="text-sm font-bold text-gray-800">{spot.city}</p></div>
+        <a href={map} target="_blank" rel="noreferrer" className="bg-white p-4 rounded-2xl border border-pink-50 shadow-sm flex justify-between items-center hover:shadow-md transition-shadow">
+          <div>
+            <p className="text-[10px] text-gray-400 font-bold uppercase">Locatie</p>
+            <p className="text-sm font-bold text-gray-800">{spot.city}</p>
+          </div>
           <ChevronLeft size={16} className="rotate-180 text-gray-400" />
         </a>
       )}
 
+      {/* Instagram Link Card */}
       {insta && (
-        <a href={insta} target="_blank" rel="noreferrer" className="bg-white p-4 rounded-2xl border border-pink-50 shadow-sm flex justify-between items-center">
-          <div><p className="text-[10px] text-gray-400 font-bold uppercase">Instagram</p><p className="text-sm font-bold text-gray-800">Bekijk profiel</p></div>
+        <a href={insta} target="_blank" rel="noreferrer" className="bg-white p-4 rounded-2xl border border-pink-50 shadow-sm flex justify-between items-center hover:shadow-md transition-shadow">
+          <div>
+            <p className="text-[10px] text-gray-400 font-bold uppercase">Instagram</p>
+            <p className="text-sm font-bold text-gray-800">Bekijk profiel</p>
+          </div>
           <ChevronLeft size={16} className="rotate-180 text-gray-400" />
         </a>
       )}
 
+      {/* Website Link Card */}
+      {web && (
+        <a href={web} target="_blank" rel="noreferrer" className="bg-white p-4 rounded-2xl border border-pink-50 shadow-sm flex justify-between items-center hover:shadow-md transition-shadow">
+          <div>
+            <p className="text-[10px] text-gray-400 font-bold uppercase">Website</p>
+            <p className="text-sm font-bold text-gray-800">Bezoek website</p>
+          </div>
+          <ChevronLeft size={16} className="rotate-180 text-gray-400" />
+        </a>
+      )}
+
+      {/* HAVE YOU BEEN BUTTON */}
       <button onClick={onReview} className="w-full bg-[#FF1493] text-white font-black py-4 rounded-2xl shadow-md mt-4">
         HAVE YOU BEEN? GIVE YOUR REVIEW
       </button>
 
+      {/* MODAL: KIES EEN LIJST */}
       {showListModal && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-6">
           <div className="bg-white w-full max-w-sm rounded-3xl p-6 shadow-2xl space-y-4">
