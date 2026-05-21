@@ -2,9 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { 
     Compass, LayoutGrid, Heart, User, MapPin, Flame, ChevronLeft, 
     Search, Plus, ArrowLeft, Camera, Utensils, Armchair, 
-    CalendarDays, ShieldCheck, CheckCircle, Upload
+    CalendarDays, ShieldCheck, CheckCircle, Upload, Instagram, Globe
 } from 'lucide-react';
-import { ..., Instagram, Globe, MapPin } from 'lucide-react';
 import { db, auth } from './firebase';
 import { collection, getDocs, updateDoc, doc, arrayUnion, query, where, addDoc } from 'firebase/firestore';
 import { onAuthStateChanged, signOut, signInWithEmailAndPassword } from 'firebase/auth';
