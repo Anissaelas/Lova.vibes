@@ -442,39 +442,6 @@ function SpotDetailView({ spot, user, onBack, onReview }) {
         </div>
       )}
 
-      {/* Locatie Link Card */}
-      {map && (
-        <a href={map} target="_blank" rel="noreferrer" className="bg-white p-4 rounded-2xl border border-pink-50 shadow-sm flex justify-between items-center hover:shadow-md transition-shadow">
-          <div>
-            <p className="text-[10px] text-gray-400 font-bold uppercase">Locatie</p>
-            <p className="text-sm font-bold text-gray-800">{spot.city}</p>
-          </div>
-          <ChevronLeft size={16} className="rotate-180 text-gray-400" />
-        </a>
-      )}
-
-      {/* Instagram Link Card */}
-      {insta && (
-        <a href={insta} target="_blank" rel="noreferrer" className="bg-white p-4 rounded-2xl border border-pink-50 shadow-sm flex justify-between items-center hover:shadow-md transition-shadow">
-          <div>
-            <p className="text-[10px] text-gray-400 font-bold uppercase">Instagram</p>
-            <p className="text-sm font-bold text-gray-800">Bekijk profiel</p>
-          </div>
-          <ChevronLeft size={16} className="rotate-180 text-gray-400" />
-        </a>
-      )}
-
-      {/* Website Link Card */}
-      {web && (
-        <a href={web} target="_blank" rel="noreferrer" className="bg-white p-4 rounded-2xl border border-pink-50 shadow-sm flex justify-between items-center hover:shadow-md transition-shadow">
-          <div>
-            <p className="text-[10px] text-gray-400 font-bold uppercase">Website</p>
-            <p className="text-sm font-bold text-gray-800">Bezoek website</p>
-          </div>
-          <ChevronLeft size={16} className="rotate-180 text-gray-400" />
-        </a>
-      )}
-
       {/* HAVE YOU BEEN BUTTON */}
       <button onClick={onReview} className="w-full bg-[#FF1493] text-white font-black py-4 rounded-2xl shadow-md mt-4">
         HAVE YOU BEEN?
