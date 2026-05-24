@@ -88,7 +88,10 @@ export default function App() {
 function HomeView({ spots, onSelect }) {
     const [searchQuery, setSearchQuery] = useState('');
     
-    // De daadwerkelijke zoeklogica die filtert op naam, stad, type, keuken of tags
+    function HomeView({ spots, onSelect }) {
+    const [searchQuery, setSearchQuery] = useState('');
+    
+    // 1. De zoeklogica
     const filteredSpots = spots.filter(s => {
         const query = searchQuery.toLowerCase().trim();
         if (!query) return false;
@@ -102,6 +105,7 @@ function HomeView({ spots, onSelect }) {
         return nameMatch || cityMatch || typeMatch || cuisineMatch || tagsMatch;
     });
     
+    // 2. Data voor de homepage secties
     const editorsChoice = spots.find(s => s.isEditorsChoice) || spots[0]; 
     const top10 = [...spots].sort((a,b) => ((b.rating?.vibe || 0) - (a.rating?.vibe || 0))).slice(0,10);
     const justOpened = spots.filter(s => s.status === 'just_opened');
@@ -135,18 +139,30 @@ function HomeView({ spots, onSelect }) {
                 <div className="space-y-4">
                     <h2 className="text-xl font-bold text-gray-900">Zoekresultaten ({filteredSpots.length})</h2>
                     <div className="space-y-3">
-                        {filteredSpots.map(s => (
-                            <div key={s.id} onClick={() => onSelect(s)} className="bg-white p-3 rounded-2xl shadow-sm border border-pink-50 flex items-center gap-4 cursor-pointer hover:shadow-md transition-shadow">
-                                <div className="w-16 h-16 rounded-xl overflow-hidden shrink-0">
-                                    <img src={s.image || 'https://via.placeholder.com/150'} className="w-full h-full object-cover" alt="" />
+                        {/* 3. Weergave van de zoekresultaten mét cijfer */}
+                        {filteredSpots.map(s => {
+                            const avgScore = s.rating ? ((s.rating.food + s.rating.service + s.rating.vibe) / 3).toFixed(1) : "-";
+                            
+                            return (
+                                <div key={s.id} onClick={() => onSelect(s)} className="bg-white p-3 rounded-2xl shadow-sm border border-pink-50 flex items-center gap-4 cursor-pointer hover:shadow-md transition-shadow">
+                                    <div className="w-16 h-16 rounded-xl overflow-hidden shrink-0 bg-gray-100 flex items-center justify-center text-xs text-gray-400">
+                                        {s.image ? (
+                                            <img src={s.image} className="w-full h-full object-cover" alt="" />
+                                        ) : (
+                                            <span>Geen foto</span>
+                                        )}
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <h3 className="font-bold text-gray-900 truncate">{s.name}</h3>
+                                        <p className="text-xs text-gray-400 font-semibold mb-1">{s.type} • {s.city}</p>
+                                        <div className="flex items-center gap-1 text-[#FF1493] text-xs font-bold">
+                                            <span>★</span> {avgScore}
+                                        </div>
+                                    </div>
+                                    <div className="text-[#FF1493]"><Flame size={16} className="fill-current" /></div>
                                 </div>
-                                <div className="flex-1 min-w-0">
-                                    <h3 className="font-bold text-gray-900 truncate">{s.name}</h3>
-                                    <p className="text-xs text-gray-400 font-semibold">{s.type} • {s.city}</p>
-                                </div>
-                                <div className="text-[#FF1493]"><Flame size={16} className="fill-current" /></div>
-                            </div>
-                        ))}
+                            );
+                        })}
                         {filteredSpots.length === 0 && (
                             <p className="text-sm text-gray-400 italic text-center py-8">Geen plekken gevonden voor deze zoekopdracht.</p>
                         )}
@@ -288,36 +304,25 @@ function CityDetailView({ spots, city, onSelect, onBack }) {
 
             <div className="space-y-4">
                 {filteredSpots.map(s => {
-                    const insta = s.instagramUrl || s.instagram || s.Instagram;
-                    const web = s.websiteUrl || s.website || s.Website || s.url;
-                    const map = s.addressUrl || s.address || s.Location || s.locatie;
+                    // Bereken de gemiddelde score voor de weergave
+                    const avgScore = s.rating ? ((s.rating.food + s.rating.service + s.rating.vibe) / 3).toFixed(1) : "-";
 
                     return (
                         <div key={s.id} onClick={() => onSelect(s)} className="bg-white p-3 rounded-2xl shadow-sm border border-pink-50 flex items-center gap-4 cursor-pointer hover:shadow-md transition-shadow">
-                            <div className="w-20 h-20 rounded-xl overflow-hidden shrink-0">
-                                <img src={s.image || 'https://via.placeholder.com/150'} className="w-full h-full object-cover" alt={s.name} />
+                            <div className="w-20 h-20 rounded-xl overflow-hidden shrink-0 bg-gray-100 flex items-center justify-center text-xs text-gray-400">
+                                {s.image ? (
+                                    <img src={s.image} className="w-full h-full object-cover" alt={s.name} />
+                                ) : (
+                                    <span>Geen foto</span>
+                                )}
                             </div>
                             
                             <div className="flex-1 min-w-0">
                                 <h3 className="font-bold text-gray-900 truncate">{s.name}</h3>
-                                <p className="text-xs text-gray-500 font-semibold mb-2">{s.type}</p>
-                                
-                                <div className="flex gap-2">
-                                    {insta && (
-                                        <a href={insta} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="bg-pink-50 text-[#FF1493] px-2 py-1 rounded text-[10px] font-bold hover:bg-pink-100">
-                                            IG
-                                        </a>
-                                    )}
-                                    {web && (
-                                        <a href={web} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="bg-gray-100 text-gray-600 px-2 py-1 rounded text-[10px] font-bold hover:bg-gray-200">
-                                            WEB
-                                        </a>
-                                    )}
-                                    {map && (
-                                        <a href={map} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="bg-gray-100 text-gray-600 px-2 py-1 rounded text-[10px] font-bold hover:bg-gray-200">
-                                            MAP
-                                        </a>
-                                    )}
+                                <p className="text-xs text-gray-500 font-semibold mb-1">{s.type}</p>
+                                {/* Weergave van het cijfer in plaats van de links */}
+                                <div className="flex items-center gap-1 text-[#FF1493] text-xs font-bold">
+                                    <span>★</span> {avgScore}
                                 </div>
                             </div>
                             <div className="bg-pink-50 p-2 rounded-full text-[#FF1493] shrink-0"><Flame size={16} className="fill-current" /></div>
