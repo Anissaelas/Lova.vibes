@@ -112,9 +112,9 @@ function HomeView({ spots, onSelect }) {
             <div className="flex justify-between items-center mb-6">
                 <h1 className="text-4xl font-black bg-gradient-to-r from-[#FF1493] to-orange-400 bg-clip-text text-transparent">LOQA.</h1>
                 <div className="flex gap-3 text-[#FF1493]">
-                    <Search size={22} />
-                    <CalendarDays size={22} />
-                    <ShieldCheck size={22} />
+                    <Search size={22} className="cursor-pointer" onClick={() => alert("Gebruik de zoekbalk hieronder om te zoeken.")} />
+                    <CalendarDays size={22} className="cursor-pointer" onClick={() => alert("De Planning & Reserveringen functie wordt binnenkort toegevoegd!")} />
+                    <ShieldCheck size={22} className="cursor-pointer" onClick={() => alert("Alleen LOQA-approved en geverifieerde plekken.")} />
                 </div>
             </div>
 
@@ -429,9 +429,13 @@ function SpotDetailView({ spot, user, onBack, onReview }) {
         {spot.cuisine && <span className="bg-white px-3 py-1.5 rounded-full text-xs font-bold text-gray-700 border shadow-sm">{spot.cuisine}</span>}
         <span className="bg-black text-white px-3 py-1.5 rounded-full text-xs font-bold shadow-sm">★ Top Vibe</span>
       </div>
-      <div className="bg-pink-50 text-[#FF1493] p-3 rounded-xl text-xs font-semibold border border-pink-100">
-        Dresscode: Formal — jackets mandatory for men at dinner
-      </div>
+      
+      {/* Dynamic Dresscode Check */}
+      {spot.dresscode && (
+        <div className="bg-pink-50 text-[#FF1493] p-3 rounded-xl text-xs font-semibold border border-pink-100">
+          Dresscode: {spot.dresscode}
+        </div>
+      )}
 
       {/* Locatie Link Card */}
       {map && (
