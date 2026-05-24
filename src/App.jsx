@@ -88,6 +88,20 @@ export default function App() {
 function HomeView({ spots, onSelect }) {
     const [searchQuery, setSearchQuery] = useState('');
     
+    // De daadwerkelijke zoeklogica die filtert op naam, stad, type, keuken of tags
+    const filteredSpots = spots.filter(s => {
+        const query = searchQuery.toLowerCase().trim();
+        if (!query) return false;
+
+        const nameMatch = s.name?.toLowerCase().includes(query);
+        const cityMatch = s.city?.toLowerCase().includes(query);
+        const typeMatch = s.type?.toLowerCase().includes(query);
+        const cuisineMatch = s.cuisine?.toLowerCase().includes(query);
+        const tagsMatch = (s.tags || []).some(tag => tag.toLowerCase().includes(query));
+
+        return nameMatch || cityMatch || typeMatch || cuisineMatch || tagsMatch;
+    });
+    
     const editorsChoice = spots.find(s => s.isEditorsChoice) || spots[0]; 
     const top10 = [...spots].sort((a,b) => ((b.rating?.vibe || 0) - (a.rating?.vibe || 0))).slice(0,10);
     const justOpened = spots.filter(s => s.status === 'just_opened');
@@ -104,71 +118,97 @@ function HomeView({ spots, onSelect }) {
                 </div>
             </div>
 
-            {/* Search Bar */}
+            {/* Search Input */}
             <div className="mb-6 relative">
                 <input 
                     type="text" 
                     placeholder="Search places, cities, cuisines or filters..." 
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full p-4 pl-12 rounded-2xl border-none shadow-sm bg-white font-medium text-sm"
+                    className="w-full p-4 pl-12 rounded-2xl border-none shadow-sm bg-white font-medium text-sm focus:outline-none focus:ring-2 focus:ring-[#FF1493]"
                 />
                 <Search size={18} className="absolute left-4 top-4 text-gray-400" />
             </div>
 
-            {/* Editor's Choice */}
-            {editorsChoice && (
-                <div className="mb-8" onClick={() => onSelect(editorsChoice)}>
-                    <div className="relative h-64 rounded-3xl overflow-hidden shadow-lg cursor-pointer">
-                        <img src={editorsChoice.image || 'https://images.unsplash.com/photo-1544227673-3112b3221b79'} className="w-full h-full object-cover" alt="Editor's Choice" />
-                        <div className="absolute top-4 left-4 bg-[#FF1493] text-white text-xs font-black px-3 py-1.5 rounded-full shadow-md uppercase tracking-wider">
-                            Editor's Choice
-                        </div>
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
-                        <div className="absolute bottom-4 left-4 right-4 text-white">
-                            <h2 className="text-2xl font-black">{editorsChoice.name}</h2>
-                            <p className="text-sm font-medium flex items-center gap-1 mb-2"><MapPin size={14} /> {editorsChoice.city} • {editorsChoice.type}</p>
-                            <div className="flex gap-2">
-                                {(editorsChoice.tags || []).slice(0, 2).map(tag => (
-                                    <span key={tag} className="text-[10px] bg-white/20 backdrop-blur-md px-2 py-1 rounded-full font-bold">{tag}</span>
-                                ))}
+            {/* Schermwissel: Toon zoekresultaten OF de normale homepage feeds */}
+            {searchQuery ? (
+                <div className="space-y-4">
+                    <h2 className="text-xl font-bold text-gray-900">Zoekresultaten ({filteredSpots.length})</h2>
+                    <div className="space-y-3">
+                        {filteredSpots.map(s => (
+                            <div key={s.id} onClick={() => onSelect(s)} className="bg-white p-3 rounded-2xl shadow-sm border border-pink-50 flex items-center gap-4 cursor-pointer hover:shadow-md transition-shadow">
+                                <div className="w-16 h-16 rounded-xl overflow-hidden shrink-0">
+                                    <img src={s.image || 'https://via.placeholder.com/150'} className="w-full h-full object-cover" alt="" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <h3 className="font-bold text-gray-900 truncate">{s.name}</h3>
+                                    <p className="text-xs text-gray-400 font-semibold">{s.type} • {s.city}</p>
+                                </div>
+                                <div className="text-[#FF1493]"><Flame size={16} className="fill-current" /></div>
                             </div>
-                        </div>
+                        ))}
+                        {filteredSpots.length === 0 && (
+                            <p className="text-sm text-gray-400 italic text-center py-8">Geen plekken gevonden voor deze zoekopdracht.</p>
+                        )}
                     </div>
                 </div>
+            ) : (
+                <>
+                    {/* Editor's Choice */}
+                    {editorsChoice && (
+                        <div className="mb-8" onClick={() => onSelect(editorsChoice)}>
+                            <div className="relative h-64 rounded-3xl overflow-hidden shadow-lg cursor-pointer">
+                                <img src={editorsChoice.image || 'https://images.unsplash.com/photo-1544227673-3112b3221b79'} className="w-full h-full object-cover" alt="Editor's Choice" />
+                                <div className="absolute top-4 left-4 bg-[#FF1493] text-white text-xs font-black px-3 py-1.5 rounded-full shadow-md uppercase tracking-wider">
+                                    Editor's Choice
+                                </div>
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
+                                <div className="absolute bottom-4 left-4 right-4 text-white">
+                                    <h2 className="text-2xl font-black">{editorsChoice.name}</h2>
+                                    <p className="text-sm font-medium flex items-center gap-1 mb-2"><MapPin size={14} /> {editorsChoice.city} • {editorsChoice.type}</p>
+                                    <div className="flex gap-2">
+                                        {(editorsChoice.tags || []).slice(0, 2).map(tag => (
+                                            <span key={tag} className="text-[10px] bg-white/20 backdrop-blur-md px-2 py-1 rounded-full font-bold">{tag}</span>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Top 10 Global */}
+                    <div className="mb-8">
+                        <h2 className="text-xl font-bold mb-4 text-gray-900">De Top 10 Wereldwijd</h2>
+                        <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
+                            {top10.map((s, idx) => (
+                                <div key={s.id} onClick={() => onSelect(s)} className="min-w-[140px] bg-white p-2 rounded-2xl shadow-sm cursor-pointer border border-pink-50">
+                                    <div className="relative h-28 bg-gray-100 rounded-xl mb-2 overflow-hidden">
+                                        <img src={s.image || 'https://via.placeholder.com/150'} className="w-full h-full object-cover" alt={s.name} />
+                                        <div className="absolute top-2 left-2 bg-black/70 text-white text-[10px] font-black px-2 py-0.5 rounded-full">#{idx + 1}</div>
+                                    </div>
+                                    <p className="font-bold text-sm truncate">{s.name}</p>
+                                    <p className="text-[10px] text-gray-400 truncate">{s.city}</p>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Just Opened */}
+                    <div className="mb-4">
+                        <h2 className="text-xl font-bold mb-4 text-gray-900">Just Opened</h2>
+                        <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
+                            {justOpened.map(s => (
+                                <div key={s.id} onClick={() => onSelect(s)} className="min-w-[140px] bg-white p-2 rounded-2xl shadow-sm cursor-pointer border border-pink-50">
+                                    <div className="h-28 bg-gray-100 rounded-xl mb-2 overflow-hidden">
+                                        <img src={s.image || 'https://via.placeholder.com/150'} className="w-full h-full object-cover" alt={s.name} />
+                                    </div>
+                                    <p className="font-bold text-sm truncate">{s.name}</p>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </>
             )}
-
-            {/* Top 10 Global */}
-            <div className="mb-8">
-                <h2 className="text-xl font-bold mb-4 text-gray-900">De Top 10 Wereldwijd</h2>
-                <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
-                    {top10.map((s, idx) => (
-                        <div key={s.id} onClick={() => onSelect(s)} className="min-w-[140px] bg-white p-2 rounded-2xl shadow-sm cursor-pointer border border-pink-50">
-                            <div className="relative h-28 bg-gray-100 rounded-xl mb-2 overflow-hidden">
-                                <img src={s.image || 'https://via.placeholder.com/150'} className="w-full h-full object-cover" alt={s.name} />
-                                <div className="absolute top-2 left-2 bg-black/70 text-white text-[10px] font-black px-2 py-0.5 rounded-full">#{idx + 1}</div>
-                            </div>
-                            <p className="font-bold text-sm truncate">{s.name}</p>
-                            <p className="text-[10px] text-gray-400 truncate">{s.city}</p>
-                        </div>
-                    ))}
-                </div>
-            </div>
-
-            {/* Just Opened / Coming Soon */}
-            <div className="mb-4">
-                <h2 className="text-xl font-bold mb-4 text-gray-900">Just Opened</h2>
-                <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
-                    {justOpened.map(s => (
-                        <div key={s.id} onClick={() => onSelect(s)} className="min-w-[140px] bg-white p-2 rounded-2xl shadow-sm cursor-pointer border border-pink-50">
-                            <div className="h-28 bg-gray-100 rounded-xl mb-2 overflow-hidden">
-                                <img src={s.image || 'https://via.placeholder.com/150'} className="w-full h-full object-cover" alt={s.name} />
-                            </div>
-                            <p className="font-bold text-sm truncate">{s.name}</p>
-                        </div>
-                    ))}
-                </div>
-            </div>
         </div>
     );
 }
