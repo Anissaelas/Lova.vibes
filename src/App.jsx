@@ -58,6 +58,7 @@ export default function App() {
             {view === 'home' && <HomeView spots={spots} onSelect={(s) => { setActiveSpot(s); setView('detail'); }} />}
             {view === 'all' && <AllCitiesView spots={spots} onSelectCity={(c) => { setActiveCity(c); setView('city_spots'); }} />}
             {view === 'city_spots' && <CityDetailView spots={spots} city={activeCity} onSelect={(s) => { setActiveSpot(s); setView('detail'); }} onBack={() => setView('all')} />}
+            {view === 'add' && <AddSpotView onBack={() => setView('all')} onAdded={() => { fetchSpots(); setView('all'); }} />}
             {view === 'detail' && <SpotDetailView spot={activeSpot} user={user} onBack={() => setView('home')} onReview={() => setView('review')} />}
             {view === 'review' && <ReviewSubmissionView spot={activeSpot} onBack={() => setView('detail')} onDone={() => { fetchSpots(); setView('detail'); }} />}
             {view === 'saved' && <MyListsView user={user} spots={spots} onSelectSpot={(s) => { setActiveSpot(s); setView('detail'); }} />}
@@ -653,6 +654,68 @@ function ProfileView({ onRefresh }) {
         </div>
     );
 }
+// --- START: ADD SPOT VIEW MODULE ---
+function AddSpotView({ onBack, onAdded }) {
+  const [data, setData] = useState({ name: '', city: '', type: 'Restaurant', tags: [] });
+  const [isSaving, setIsSaving] = useState(false);
+  
+  const toggleTag = (tag) => {
+      setData(prev => ({
+          ...prev, 
+          tags: prev.tags.includes(tag) ? prev.tags.filter(t => t !== tag) : [...prev.tags, tag]
+      }));
+  };
+
+  const save = async () => { 
+      if (!data.name || !data.city) return alert("Vul in ieder geval een naam en stad in!");
+      setIsSaving(true);
+      try {
+          await addDoc(collection(db, "spots"), data); 
+          onAdded(); 
+      } catch (e) {
+          console.error(e);
+          alert("Opslaan mislukt.");
+      } finally {
+          setIsSaving(false);
+      }
+  };
+  
+  return (
+    <div className="p-5 pb-20 max-w-md mx-auto">
+      <button onClick={onBack} className="mb-6 p-2 bg-white rounded-full shadow-sm"><ArrowLeft size={20} /></button>
+      <h2 className="text-3xl font-black mb-6 text-gray-900">Nieuwe plek</h2>
+      
+      <div className="space-y-4 mb-6">
+          <input className="w-full p-4 rounded-2xl border bg-white shadow-sm font-medium focus:ring-2 focus:ring-[#FF1493] outline-none" placeholder="Naam van de plek (bijv. Zuma)" onChange={e => setData({...data, name: e.target.value})} />
+          <input className="w-full p-4 rounded-2xl border bg-white shadow-sm font-medium focus:ring-2 focus:ring-[#FF1493] outline-none" placeholder="Stad (bijv. Bodrum)" onChange={e => setData({...data, city: e.target.value})} />
+          
+          <select className="w-full p-4 rounded-2xl border bg-white shadow-sm font-bold focus:ring-2 focus:ring-[#FF1493] outline-none appearance-none" onChange={e => setData({...data, type: e.target.value, tags: []})}>
+            <option value="Restaurant">Restaurant</option>
+            <option value="Hotel">Hotel</option>
+            <option value="Beach Club">Beach Club</option>
+          </select>
+      </div>
+      
+      <p className="font-bold text-gray-900 mb-3">Vibe Filters</p>
+      <div className="flex flex-wrap gap-2 mb-8">
+          {(TAGS_MAP[data.type] || []).map(t => (
+              <button 
+                key={t} 
+                onClick={() => toggleTag(t)} 
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all border ${data.tags.includes(t) ? 'bg-[#FF1493] text-white border-[#FF1493] shadow-md' : 'bg-white text-gray-600 border-gray-200'}`}
+              >
+                  {t}
+              </button>
+          ))}
+      </div>
+      
+      <button onClick={save} disabled={isSaving} className="w-full bg-[#111827] text-white p-4 rounded-2xl font-black shadow-lg hover:shadow-xl transition-all">
+          {isSaving ? "Aan het opslaan..." : "Plek opslaan"}
+      </button>
+    </div>
+  );
+}
+// --- EIND: ADD SPOT VIEW MODULE ---
 
 // --- LOGIN SCREEN ---
 // --- START: AUTH SCREEN WITH REGISTER OPTION ---
