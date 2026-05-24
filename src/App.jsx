@@ -56,7 +56,7 @@ export default function App() {
     return (
         <div className="min-h-screen bg-[#FFFEE0] pb-24 font-sans text-gray-900">
             {view === 'home' && <HomeView spots={spots} onSelect={(s) => { setActiveSpot(s); setView('detail'); }} />}
-            {view === 'all' && <AllCitiesView spots={spots} onSelectCity={(c) => { setActiveCity(c); setView('city_spots'); }} />}
+            {view === 'all' && <AllCitiesView spots={spots} onSelectCity={(c) => { setActiveCity(c); setView('city_spots'); }} onAdd={() => setView('add')} />}
             {view === 'city_spots' && <CityDetailView spots={spots} city={activeCity} onSelect={(s) => { setActiveSpot(s); setView('detail'); }} onBack={() => setView('all')} />}
             {view === 'add' && <AddSpotView onBack={() => setView('all')} onAdded={() => { fetchSpots(); setView('all'); }} />}
             {view === 'detail' && <SpotDetailView spot={activeSpot} user={user} onBack={() => setView('home')} onReview={() => setView('review')} />}
