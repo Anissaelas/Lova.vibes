@@ -279,8 +279,14 @@ function CityDetailView({ spots, city, onSelect, onBack }) {
                 ))}
             </div>
             <div className="space-y-4">
+                <div className="space-y-4">
                 {filteredSpots.map(s => {
-                    const avgScore = spot.rating ? ((Number(spot.rating.food) + Number(spot.rating.service) + Number(spot.rating.vibe)) / 3).toFixed(1) : "-";
+                    // Veilige berekening van score
+                    const food = Number(s.rating?.food || 0);
+                    const service = Number(s.rating?.service || 0);
+                    const vibe = Number(s.rating?.vibe || 0);
+                    const avgScore = (food + service + vibe) / 3 || 0;
+
                     return (
                         <div key={s.id} onClick={() => onSelect(s)} className="bg-white p-3 rounded-2xl shadow-sm border border-pink-50 flex items-center gap-4 cursor-pointer hover:shadow-md transition-shadow">
                             <div className="w-20 h-20 rounded-xl overflow-hidden shrink-0 bg-gray-100 flex items-center justify-center text-xs text-gray-400">
@@ -289,7 +295,9 @@ function CityDetailView({ spots, city, onSelect, onBack }) {
                             <div className="flex-1 min-w-0">
                                 <h3 className="font-bold text-gray-900 truncate">{s.name}</h3>
                                 <p className="text-xs text-gray-500 font-semibold mb-1">{s.type}</p>
-                                <div className="flex items-center gap-1 text-[#FF1493] text-xs font-bold"><span>★</span> {avgScore}</div>
+                                <div className="flex items-center gap-1 text-[#FF1493] text-xs font-bold">
+                                    <span>★</span> {avgScore.toFixed(1)}
+                                </div>
                             </div>
                             <div className="bg-pink-50 p-2 rounded-full text-[#FF1493] shrink-0"><Flame size={16} className="fill-current" /></div>
                         </div>
