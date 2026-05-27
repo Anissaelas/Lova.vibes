@@ -1,16 +1,20 @@
 import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
+import { getStorage } from "firebase/storage"; // 1. Deze import is verplicht
 
 const firebaseConfig = {
-  apiKey: "AIzaSyAJRuv4-dudOel0FkwjYJJ0O5TuUQH2Rpg",
-  authDomain: "locavibes-24dce.firebaseapp.com",
-  projectId: "locavibes-24dce",
-  storageBucket: "locavibes-24dce.firebasestorage.app",
-  messagingSenderId: "514346232936",
-  appId: "1:514346232936:web:39ab7ed0d0a5f7f0f15fdd"
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+  projectId: "YOUR_PROJECT_ID",
+  storageBucket: "YOUR_PROJECT_ID.appspot.com", // Zorg dat dit veld in je config staat!
+  messagingSenderId: "YOUR_ID",
+  appId: "YOUR_APP_ID"
 };
 
 const app = initializeApp(firebaseConfig);
+
+// 2. Initialiseer en exporteer alles
 export const db = getFirestore(app);
 export const auth = getAuth(app);
+export const storage = getStorage(app); // 3. Nu kun je storage overal importeren
