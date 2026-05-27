@@ -8,6 +8,7 @@ import { db, auth } from './firebase';
 import { collection, getDocs, updateDoc, doc, arrayUnion, query, where, addDoc } from 'firebase/firestore';
 import { onAuthStateChanged, signOut, signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
 
+// --- FILTER TAGS PER CATEGORY ---
 const TAGS_MAP = {
     'Restaurant': [
         'Business', 'Party', 'Quiet', 'Luxury', 'Solo-friendly', 'Group-friendly', 'First date', 'Anniversary/Romantic', 
@@ -26,14 +27,14 @@ const TAGS_MAP = {
         'Dresscode required', 'Card only', 'Cash only', 'Hard to book', 'Party', 'Quiet', 'Solo-friendly', 'Group-friendly', 
         'Vega/Vegan friendly', 'Gluten-free', 'Halal', 'Great cocktails/Mocktails', 'Instagrammable', 'Worth the hype', 
         'Worth the queue', 'Unique presentation', 'show', 'Hidden gem', 'DJ'
-    ]
+    ], // <--- DEZE KOMMA WAS HET PROBLEEM!
     'Lunch': [
         'Business', 'Quiet', 'Luxury', 'Solo-friendly', 'Group-friendly', 'First date', 'Anniversary/Romantic', 
         'Vega/Vegan friendly', 'Gluten-free', 'Halal', 'Great cocktails/Mocktails', 'Affordable luxury', 
         'Instagrammable', 'Worth the hype', 'Worth the queue', 'Unique presentation', 'Food show', 'Hidden gem', 
         'Secret entrance', 'Aesthetic interior', 'Dresscode required', 'Card only', 
         'Cash only', 'Hard to book'
-    ],
+    ]
 };
 
 export default function App() {
