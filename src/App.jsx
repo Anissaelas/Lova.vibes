@@ -220,8 +220,9 @@ function HomeView({ spots, onSelect }) {
 }
 
 function AllCitiesView({ spots, onSelectCity, onAdd }) {
-    const cityCounts = spots.reduce((acc, spot) => {
-        if (spot.city) acc[spot.city] = (acc[spot.city] || 0) + 1;
+    // Veilige berekening: filtert plekken zonder stad eruit
+    const cityCounts = spots.filter(s => s.city).reduce((acc, spot) => {
+        acc[spot.city] = (acc[spot.city] || 0) + 1;
         return acc;
     }, {});
     
@@ -255,7 +256,7 @@ function AllCitiesView({ spots, onSelectCity, onAdd }) {
 }
 function CityDetailView({ spots, city, onSelect, onBack }) {
     const [filter, setFilter] = useState('Alles');
-    const filters = ['Alles', 'Restaurant', 'Hotel', 'Beach Club'];
+    const filters = ['Alles', 'Restaurant', 'Hotel', 'Beach Club', 'Lunch', 'Rooftop Bar', 'Café', 'Breakfast'];
     
     const citySpots = spots.filter(s => s.city === city);
     const filteredSpots = filter === 'Alles' ? citySpots : citySpots.filter(s => s.type === filter);
@@ -722,6 +723,10 @@ function AddSpotView({ onBack, onAdded }) {
             <option value="Restaurant">Restaurant</option>
             <option value="Hotel">Hotel</option>
             <option value="Beach Club">Beach Club</option>
+            <option value="Lunch">Lunch</option>
+            <option value="Rooftop Bar">Rooftop Bar</option>
+            <option value="Breakfast">Breakfast</option>
+            <option value="Café">Café</option>
           </select>
       </div>
       
