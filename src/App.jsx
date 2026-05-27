@@ -27,6 +27,13 @@ const TAGS_MAP = {
         'Vega/Vegan friendly', 'Gluten-free', 'Halal', 'Great cocktails/Mocktails', 'Instagrammable', 'Worth the hype', 
         'Worth the queue', 'Unique presentation', 'show', 'Hidden gem', 'DJ'
     ]
+    'Lunch': [
+        'Business', 'Quiet', 'Luxury', 'Solo-friendly', 'Group-friendly', 'First date', 'Anniversary/Romantic', 
+        'Vega/Vegan friendly', 'Gluten-free', 'Halal', 'Great cocktails/Mocktails', 'Affordable luxury', 
+        'Instagrammable', 'Worth the hype', 'Worth the queue', 'Unique presentation', 'Food show', 'Hidden gem', 
+        'Secret entrance', 'Aesthetic interior', 'Dresscode required', 'Card only', 
+        'Cash only', 'Hard to book'
+    ],
 };
 
 export default function App() {
