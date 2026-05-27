@@ -7,6 +7,7 @@ import {
 import { db, auth } from './firebase';
 import { collection, getDocs, updateDoc, doc, arrayUnion, query, where, addDoc } from 'firebase/firestore';
 import { onAuthStateChanged, signOut, signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
+import { ..., Plus, ArrowLeft, Trash2 } from 'lucide-react';
 
 const TAGS_MAP = {
     'Restaurant': [
@@ -474,13 +475,45 @@ function MyListsView({ user, spots, onSelectSpot }) {
     } catch (e) { console.error(e); }
   };
 
+  // NIEUW: Functie om een hele lijst te verwijderen
+  const handleDeleteList = async (listId, listName, e) => {
+    // Voorkom dat de lijst opent als je op de prullenbak klikt in het overzicht
+    if (e) e.stopPropagation(); 
+    
+    const confirmDelete = window.confirm(`Weet je zeker dat je de lijst "${listName}" wilt verwijderen?`);
+    if (!confirmDelete) return;
+
+    try {
+      const { deleteDoc } = await import('firebase/firestore');
+      await deleteDoc(doc(db, "lists", listId));
+      alert("Lijst succesvol verwijderd!");
+      setActiveList(null); // Als de lijst openstond, sluit hem
+      fetchUserLists(); // Ververs het overzicht
+    } catch (error) {
+      console.error("Fout bij verwijderen:", error);
+      alert("Verwijderen mislukt.");
+    }
+  };
+
+  // Geselecteerde lijst detailweergave
   if (activeList) {
     const currentList = lists.find(l => l.id === activeList.id) || activeList;
     const savedSpots = spots.filter(s => currentList.spotIds?.includes(s.id));
     
     return (
       <div className="p-5 max-w-md mx-auto">
-        <button onClick={() => setActiveList(null)} className="p-2 bg-white rounded-full shadow-sm mb-4"><ArrowLeft size={18}/></button>
+        <div className="flex justify-between items-center mb-4">
+          <button onClick={() => setActiveList(null)} className="p-2 bg-white rounded-full shadow-sm">
+            <ArrowLeft size={18}/>
+          </button>
+          {/* Prullenbak knop in de geopende lijst */}
+          <button 
+            onClick={(e) => handleDeleteList(currentList.id, currentList.name, e)} 
+            className="p-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-full transition-colors"
+          >
+            <Trash2 size={18} />
+          </button>
+        </div>
         <h2 className="text-3xl font-black text-gray-900 mb-1">{currentList.name}</h2>
         <p className="text-xs text-gray-400 font-bold mb-6">{savedSpots.length} opgeslagen plekken</p>
         <div className="grid grid-cols-2 gap-4">
@@ -496,6 +529,7 @@ function MyListsView({ user, spots, onSelectSpot }) {
     );
   }
 
+  // Hoofdoverzicht van alle mappen
   return (
     <div className="p-5 max-w-md mx-auto min-h-[calc(100vh-80px)]">
       <div className="flex justify-between items-center mb-6">
@@ -507,9 +541,21 @@ function MyListsView({ user, spots, onSelectSpot }) {
       ) : (
         <div className="space-y-3">
           {lists.map(list => (
-            <div key={list.id} onClick={() => setActiveList(list)} className="bg-white p-5 rounded-2xl shadow-sm border border-pink-50 flex justify-between items-center cursor-pointer hover:shadow-md transition-shadow">
-              <div><h3 className="font-bold text-lg text-gray-900">{list.name}</h3><p className="text-xs text-gray-400 font-semibold">{(list.spotIds || []).length} plekken</p></div>
-              <ChevronLeft size={16} className="rotate-180 text-gray-400" />
+            <div key={list.id} onClick={() => setActiveList(list)} className="bg-white p-5 rounded-2xl shadow-sm border border-pink-50 flex justify-between items-center cursor-pointer hover:shadow-md transition-shadow group">
+              <div>
+                <h3 className="font-bold text-lg text-gray-900">{list.name}</h3>
+                <p className="text-xs text-gray-400 font-semibold">{(list.spotIds || []).length} plekken</p>
+              </div>
+              <div className="flex items-center gap-3">
+                {/* Prullenbak icoon direct in het overzicht bij elke map */}
+                <button 
+                  onClick={(e) => handleDeleteList(list.id, list.name, e)} 
+                  className="p-2 text-gray-400 hover:text-red-600 rounded-full hover:bg-red-50 transition-all opacity-0 group-hover:opacity-100 md:opacity-100"
+                >
+                  <Trash2 size={16} />
+                </button>
+                <ChevronLeft size={16} className="rotate-180 text-gray-400" />
+              </div>
             </div>
           ))}
         </div>
