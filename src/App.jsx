@@ -142,7 +142,7 @@ function HomeView({ spots, onSelect }) {
                     <h2 className="text-xl font-bold text-gray-900">Zoekresultaten ({filteredSpots.length})</h2>
                     <div className="space-y-3">
                         {filteredSpots.map(s => {
-                            const avgScore = s.rating ? ((s.rating.food + s.rating.service + s.rating.vibe) / 3).toFixed(1) : "-";
+                            const avgScore = spot.rating ? ((Number(spot.rating.food) + Number(spot.rating.service) + Number(spot.rating.vibe)) / 3).toFixed(1) : "-";
                             return (
                                 <div key={s.id} onClick={() => onSelect(s)} className="bg-white p-3 rounded-2xl shadow-sm border border-pink-50 flex items-center gap-4 cursor-pointer hover:shadow-md transition-shadow">
                                     <div className="w-16 h-16 rounded-xl overflow-hidden shrink-0 bg-gray-100 flex items-center justify-center text-xs text-gray-400">
@@ -277,7 +277,7 @@ function CityDetailView({ spots, city, onSelect, onBack }) {
             </div>
             <div className="space-y-4">
                 {filteredSpots.map(s => {
-                    const avgScore = s.rating ? ((s.rating.food + s.rating.service + s.rating.vibe) / 3).toFixed(1) : "-";
+                    const avgScore = spot.rating ? ((Number(spot.rating.food) + Number(spot.rating.service) + Number(spot.rating.vibe)) / 3).toFixed(1) : "-";
                     return (
                         <div key={s.id} onClick={() => onSelect(s)} className="bg-white p-3 rounded-2xl shadow-sm border border-pink-50 flex items-center gap-4 cursor-pointer hover:shadow-md transition-shadow">
                             <div className="w-20 h-20 rounded-xl overflow-hidden shrink-0 bg-gray-100 flex items-center justify-center text-xs text-gray-400">
@@ -355,7 +355,7 @@ function SpotDetailView({ spot, user, onBack, onReview }) {
     }
   };
 
-  const avgScore = spot.rating ? ((spot.rating.food + spot.rating.service + spot.rating.vibe) / 3).toFixed(1) : "9.6";
+  const avgScore = spot.rating ? ((Number(spot.rating.food) + Number(spot.rating.service) + Number(spot.rating.vibe)) / 3).toFixed(1) : "-";
   const insta = spot.instagramUrl || spot.instagram || spot.Instagram;
   const web = spot.websiteUrl || spot.website || spot.Website || spot.url;
   const map = spot.addressUrl || spot.address || spot.Location || spot.locatie;
