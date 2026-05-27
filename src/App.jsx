@@ -2,12 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { 
     Compass, LayoutGrid, Heart, User, MapPin, Flame, ChevronLeft, 
     Search, Plus, ArrowLeft, Camera, Utensils, Armchair, 
-    CalendarDays, ShieldCheck, CheckCircle, Upload, Instagram, Globe
+    CalendarDays, ShieldCheck, CheckCircle, Upload, Instagram, Globe, Trash2
 } from 'lucide-react';
 import { db, auth } from './firebase';
 import { collection, getDocs, updateDoc, doc, arrayUnion, query, where, addDoc } from 'firebase/firestore';
 import { onAuthStateChanged, signOut, signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
-import { ..., Plus, ArrowLeft, Trash2 } from 'lucide-react';
 
 const TAGS_MAP = {
     'Restaurant': [
